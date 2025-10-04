@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 type SummaryCard = {
   key: string
@@ -16,6 +16,17 @@ export default function DashboardPage() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  // Redirect legacy hash anchors to proper routes
+  useEffect(() => {
+    const h = location.hash.toLowerCase()
+    if (h === '#employees') navigate('/employees', { replace: true })
+    else if (h === '#leaves') navigate('/leaves', { replace: true })
+    else if (h === '#documents') navigate('/documents', { replace: true })
+    else if (h === '#settings') navigate('/settings', { replace: true })
+  }, [location.hash, navigate])
 
   const summary: SummaryCard[] = [
     { key: 'employees', label: 'Employees', value: '18', sublabel: 'Total team members', color: 'text-blue-600', Icon: UsersIcon },
@@ -186,10 +197,10 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav className="rounded-2xl border border-black/5 dark:border-white/10 bg-white/80 dark:bg-neutral-900/60 backdrop-blur p-3 sm:p-4 space-y-1">
       <NavItem to="/dashboard" label="Dashboard" Icon={GridIcon} active />
-      <NavItem to="#employees" label="Employees" Icon={UsersIcon} />
-      <NavItem to="#leaves" label="Leaves" Icon={CalendarIcon} />
-      <NavItem to="#documents" label="Documents" Icon={FileIcon} />
-      <NavItem to="#settings" label="Settings" Icon={SettingsIcon} />
+      <NavItem to="/employees" label="Employees" Icon={UsersIcon} />
+      <NavItem to="/leaves" label="Leaves" Icon={CalendarIcon} />
+      <NavItem to="/documents" label="Documents" Icon={FileIcon} />
+      <NavItem to="/settings" label="Settings" Icon={SettingsIcon} />
     </nav>
   )
 }
