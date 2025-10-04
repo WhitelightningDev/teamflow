@@ -59,134 +59,103 @@ export default function AddEmployee({ onSuccess, onCancel }: { onSuccess: (emp: 
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 md:px-0">
+    <div className="max-w-3xl mx-auto">
       <Card shadow="sm" radius="lg" className="border">
         <CardHeader className="flex flex-col items-start gap-1">
           <h2 className="text-lg font-semibold">Add Employee</h2>
           <p className="text-sm text-foreground-500">Create a new team member profile. Required fields are marked.</p>
         </CardHeader>
         <Divider />
-        <CardBody className="p-6 md:p-8">
+        <CardBody>
           <Form className="w-full" validationErrors={errors} onSubmit={onSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-              {/* First name */}
-              <div className="space-y-1">
-                <label htmlFor="first_name" className="text-sm font-medium text-foreground-600">First name</label>
-                <Input
-                  id="first_name"
-                  isRequired
-                  variant="bordered"
-                  radius="md"
-                  size="md"
-                  name="first_name"
-                  placeholder="e.g., Alex"
-                  className="w-full"
-                />
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Input
+                isRequired
+                variant="bordered"
+                radius="md"
+                size="md"
+                label="First name"
+                labelPlacement="outside"
+                name="first_name"
+                placeholder="e.g., Alex"
+              />
+              <Input
+                isRequired
+                variant="bordered"
+                radius="md"
+                size="md"
+                label="Last name"
+                labelPlacement="outside"
+                name="last_name"
+                placeholder="e.g., Johnson"
+              />
 
-              {/* Last name */}
-              <div className="space-y-1">
-                <label htmlFor="last_name" className="text-sm font-medium text-foreground-600">Last name</label>
-                <Input
-                  id="last_name"
-                  isRequired
-                  variant="bordered"
-                  radius="md"
-                  size="md"
-                  name="last_name"
-                  placeholder="e.g., Johnson"
-                  className="w-full"
-                />
-              </div>
+              <Input
+                isRequired
+                type="email"
+                variant="bordered"
+                radius="md"
+                size="md"
+                label="Email"
+                labelPlacement="outside"
+                name="email"
+                placeholder="you@company.com"
+                description="We'll never share this."
+              />
+              <Input
+                variant="bordered"
+                radius="md"
+                size="md"
+                label="Title"
+                labelPlacement="outside"
+                name="title"
+                placeholder="e.g., Product Manager"
+              />
 
-              {/* Email */}
-              <div className="space-y-1">
-                <label htmlFor="email" className="text-sm font-medium text-foreground-600">Email</label>
-                <Input
-                  id="email"
-                  isRequired
-                  type="email"
-                  variant="bordered"
-                  radius="md"
-                  size="md"
-                  name="email"
-                  placeholder="you@company.com"
-                  className="w-full"
-                  description="We'll never share this."
-                />
-              </div>
+              <Select
+                isRequired
+                variant="bordered"
+                radius="md"
+                size="md"
+                label="Role"
+                labelPlacement="outside"
+                name="role"
+                selectedKeys={new Set([role])}
+                onSelectionChange={(keys) => setRole(Array.from(keys)[0] as string)}
+                placeholder="Select role"
+              >
+                <SelectItem key="employee">Employee</SelectItem>
+                <SelectItem key="manager">Manager</SelectItem>
+                <SelectItem key="admin">Admin</SelectItem>
+                <SelectItem key="hr">HR</SelectItem>
+                <SelectItem key="staff">Staff</SelectItem>
+              </Select>
 
-              {/* Title */}
-              <div className="space-y-1">
-                <label htmlFor="title" className="text-sm font-medium text-foreground-600">Title</label>
-                <Input
-                  id="title"
-                  variant="bordered"
-                  radius="md"
-                  size="md"
-                  name="title"
-                  placeholder="e.g., Product Manager"
-                  className="w-full"
-                />
-              </div>
+              <Input
+                type="date"
+                variant="bordered"
+                radius="md"
+                size="md"
+                label="Start date"
+                labelPlacement="outside"
+                name="start_date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
 
-              {/* Role */}
-              <div className="space-y-1">
-                <label htmlFor="role" className="text-sm font-medium text-foreground-600">Role</label>
-                <Select
-                  id="role"
-                  isRequired
-                  variant="bordered"
-                  radius="md"
-                  size="md"
-                  name="role"
-                  selectedKeys={new Set([role])}
-                  onSelectionChange={(keys) => setRole(Array.from(keys)[0] as string)}
-                  placeholder="Select role"
-                  className="w-full"
-                >
-                  <SelectItem key="employee">Employee</SelectItem>
-                  <SelectItem key="manager">Manager</SelectItem>
-                  <SelectItem key="admin">Admin</SelectItem>
-                  <SelectItem key="hr">HR</SelectItem>
-                  <SelectItem key="staff">Staff</SelectItem>
-                </Select>
-              </div>
+              <Input
+                type="number"
+                variant="bordered"
+                radius="md"
+                size="md"
+                label="Manager ID (optional)"
+                labelPlacement="outside"
+                name="manager_id"
+                placeholder="e.g., 42"
+                min={0}
+                description="If the employee reports to a specific manager."
+              />
 
-              {/* Start date */}
-              <div className="space-y-1">
-                <label htmlFor="start_date" className="text-sm font-medium text-foreground-600">Start date</label>
-                <Input
-                  id="start_date"
-                  type="date"
-                  variant="bordered"
-                  radius="md"
-                  size="md"
-                  name="start_date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-
-              {/* Manager ID */}
-              <div className="space-y-1 md:col-span-2">
-                <label htmlFor="manager_id" className="text-sm font-medium text-foreground-600">Manager ID (optional)</label>
-                <Input
-                  id="manager_id"
-                  type="number"
-                  variant="bordered"
-                  radius="md"
-                  size="md"
-                  name="manager_id"
-                  placeholder="e.g., 42"
-                  min={0}
-                  className="w-full"
-                  description="If the employee reports to a specific manager."
-                />
-              </div>
-
-              {/* Active */}
               <div className="md:col-span-2">
                 <Checkbox
                   classNames={{ label: 'text-small' }}
@@ -203,7 +172,6 @@ export default function AddEmployee({ onSuccess, onCancel }: { onSuccess: (emp: 
                 <div className="md:col-span-2 text-danger text-sm">{errors.form}</div>
               )}
 
-              {/* Actions */}
               <div className="md:col-span-2 flex gap-3 justify-end pt-2">
                 <Button variant="bordered" onPress={onCancel} disabled={submitting}>
                   Cancel

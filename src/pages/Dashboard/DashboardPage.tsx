@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { getUser, listEmployees, listLeaves, listDocuments } from '../../lib/api'
+import SummarySkeleton from '../../components/SummarySkeleton'
 
 type SummaryCard = {
   key: string
@@ -30,6 +31,7 @@ export default function DashboardPage() {
     else if (h === '#settings') navigate('/settings', { replace: true })
   }, [location.hash, navigate])
 
+  const [summaryLoading, setSummaryLoading] = useState(true)
   const [summary, setSummary] = useState<SummaryCard[]>([
     { key: 'employees', label: 'Employees', value: '—', sublabel: 'Total team members', color: 'text-blue-600', Icon: UsersIcon },
     { key: 'pendingLeave', label: 'Pending Leave', value: '—', sublabel: 'Awaiting approval', color: 'text-emerald-600', Icon: CalendarIcon },
@@ -58,9 +60,11 @@ export default function DashboardPage() {
             if (card.key === 'onLeave') return { ...card, value: String(onLeaveToday) }
             return card
           }))
+          setSummaryLoading(false)
         }
       } catch (e) {
         // Silently ignore for dashboard; could add a toast
+        if (!cancelled) setSummaryLoading(false)
       }
     }
     load()
@@ -182,22 +186,26 @@ export default function DashboardPage() {
         <main className="lg:col-span-9 space-y-6">
           {/* Summary cards */}
           <section>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-              {summary.map(({ key, label, value, sublabel, color, Icon }) => (
-                <div key={key} className="rounded-2xl bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/10 shadow-sm p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`h-10 w-10 rounded-lg bg-black/5 dark:bg-white/10 flex items-center justify-center ${color}`}>
-                        <Icon className="h-5 w-5" />
+            {summaryLoading ? (
+              <SummarySkeleton items={4} />
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                {summary.map(({ key, label, value, sublabel, color, Icon }) => (
+                  <div key={key} className="rounded-2xl bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/10 shadow-sm p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`h-10 w-10 rounded-lg bg-black/5 dark:bg-white/10 flex items-center justify-center ${color}`}>
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <span className="font-medium">{label}</span>
                       </div>
-                      <span className="font-medium">{label}</span>
                     </div>
+                    <p className="mt-3 text-3xl font-bold">{value}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">{sublabel}</p>
                   </div>
-                  <p className="mt-3 text-3xl font-bold">{value}</p>
-                  <p className="text-sm text-slate-600 dark:text-slate-300">{sublabel}</p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
 
           {/* Pending Tasks + Recent Activity */}
@@ -248,24 +256,30 @@ export default function DashboardPage() {
 }
 
 function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+  const { pathname } = useLocation()
   const NavItem = ({ to, label, Icon, active = false }: { to: string; label: string; Icon: (p: { className?: string }) => JSX.Element; active?: boolean }) => (
     <Link
       to={to}
       onClick={onNavigate}
-      className={`${active ? 'bg-blue-600 text-white' : 'hover:bg-black/5 dark:hover:bg-white/10 text-slate-800 dark:text-slate-200'} group flex items-center gap-3 rounded-lg px-3 py-2`}
+      aria-current={active ? 'page' : undefined}
+      className={`${
+        active
+          ? 'bg-blue-100 text-blue-700 dark:bg-blue-600/30 dark:text-blue-50'
+          : 'hover:bg-black/5 dark:hover:bg-white/10 text-slate-800 dark:text-slate-200'
+      } group flex items-center gap-3 rounded-lg px-3 py-2`}
     >
-      <Icon className={`h-5 w-5 ${active ? 'text-white' : 'text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200'}`} />
+      <Icon className={`h-5 w-5 ${active ? 'text-blue-700 dark:text-blue-50' : 'text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200'}`} />
       <span className="text-sm font-medium">{label}</span>
     </Link>
   )
 
   return (
     <nav className="rounded-2xl border border-black/5 dark:border-white/10 bg-white/80 dark:bg-neutral-900/60 backdrop-blur p-3 sm:p-4 space-y-1">
-      <NavItem to="/dashboard" label="Dashboard" Icon={GridIcon} active />
-      <NavItem to="/employees" label="Employees" Icon={UsersIcon} />
-      <NavItem to="/leaves" label="Leaves" Icon={CalendarIcon} />
-      <NavItem to="/documents" label="Documents" Icon={FileIcon} />
-      <NavItem to="/settings" label="Settings" Icon={SettingsIcon} />
+      <NavItem to="/dashboard" label="Dashboard" Icon={GridIcon} active={pathname === '/dashboard'} />
+      <NavItem to="/employees" label="Employees" Icon={UsersIcon} active={pathname === '/employees'} />
+      <NavItem to="/leaves" label="Leaves" Icon={CalendarIcon} active={pathname === '/leaves'} />
+      <NavItem to="/documents" label="Documents" Icon={FileIcon} active={pathname === '/documents'} />
+      <NavItem to="/settings" label="Settings" Icon={SettingsIcon} active={pathname === '/settings'} />
     </nav>
   )
 }
