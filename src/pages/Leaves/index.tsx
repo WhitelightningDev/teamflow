@@ -1,20 +1,49 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Breadcrumbs from '../../components/Breadcrumbs'
+import { listLeaves, decideLeave, type LeaveOut } from '../../lib/api'
 
 type Status = 'Pending' | 'Approved' | 'Rejected'
+type UILeave = { id: number | string; employee: string; type: string; startDate: string; endDate: string; status: Status }
 
 export default function LeavesPage() {
   const [tab, setTab] = useState<'All' | Status>('All')
-  const [requests, setRequests] = useState(() => initialRequests)
+  const [requests, setRequests] = useState<UILeave[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      setError(null)
+      try {
+        const statusParam = tab === 'All' ? undefined : tab.toLowerCase()
+        const res = await listLeaves({ page: 1, size: 50, status: statusParam })
+        if (!cancelled) setRequests(res.items.map(mapLeave))
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message || 'Failed to load leaves')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [tab])
 
   const list = useMemo(() => {
     if (tab === 'All') return requests
     return requests.filter((r) => r.status === tab)
   }, [requests, tab])
 
-  function setStatus(id: string, status: Status) {
-    setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)))
+  async function setStatus(id: number | string, status: Status) {
+    try {
+      const action = status === 'Approved' ? 'approve' as const : 'reject' as const
+      const updated = await decideLeave(id, action)
+      setRequests((prev) => prev.map((r) => (r.id === id ? mapLeave(updated) : r)))
+    } catch (e) {
+      alert('Failed to update leave status')
+    }
   }
 
   return (
@@ -56,7 +85,13 @@ export default function LeavesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-black/5 dark:divide-white/10">
-              {list.map((r) => (
+              {loading && (
+                <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-500">Loading…</td></tr>
+              )}
+              {!loading && error && (
+                <tr><td colSpan={6} className="px-4 py-6 text-center text-rose-600">{error}</td></tr>
+              )}
+              {!loading && !error && list.map((r) => (
                 <tr key={r.id} className="hover:bg-black/5 dark:hover:bg-white/5">
                   <td className="px-4 py-3">{r.employee}</td>
                   <td className="px-4 py-3">{r.type}</td>
@@ -86,7 +121,10 @@ export default function LeavesPage() {
 
         {/* Cards (mobile) */}
         <div className="md:hidden grid grid-cols-1 gap-3">
-          {list.map((r) => (
+          {loading && (
+            <div className="text-center text-slate-500">Loading…</div>
+          )}
+          {!loading && !error && list.map((r) => (
             <div key={r.id} className="rounded-xl bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/10 p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
@@ -114,9 +152,16 @@ export default function LeavesPage() {
   )
 }
 
-const initialRequests = [
-  { id: '1', employee: 'Alex Johnson', type: 'Vacation', startDate: '2025-10-12', endDate: '2025-10-16', status: 'Pending' as Status },
-  { id: '2', employee: 'Priya Patel', type: 'Sick Leave', startDate: '2025-10-03', endDate: '2025-10-05', status: 'Approved' as Status },
-  { id: '3', employee: 'Sam Lee', type: 'Personal', startDate: '2025-10-20', endDate: '2025-10-21', status: 'Rejected' as Status },
-  { id: '4', employee: 'Maria Garcia', type: 'Vacation', startDate: '2025-11-01', endDate: '2025-11-07', status: 'Pending' as Status },
-]
+function mapLeave(l: LeaveOut): UILeave {
+  const status: Status = (l.status === 'approved' ? 'Approved' : l.status === 'rejected' ? 'Rejected' : 'Pending')
+  const start = typeof l.start_date === 'string' ? l.start_date : new Date(l.start_date).toISOString().slice(0,10)
+  const end = typeof l.end_date === 'string' ? l.end_date : new Date(l.end_date).toISOString().slice(0,10)
+  return {
+    id: l.id,
+    employee: `Employee #${l.employee_id}`,
+    type: l.leave_type,
+    startDate: start,
+    endDate: end,
+    status,
+  }
+}

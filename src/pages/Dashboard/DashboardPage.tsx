@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { getUser, listEmployees, listLeaves, listDocuments } from '../../lib/api'
 
 type SummaryCard = {
   key: string
@@ -12,7 +13,8 @@ type SummaryCard = {
 }
 
 export default function DashboardPage() {
-  const userName = 'Jane'
+  const storedUser = getUser()
+  const userName = storedUser ? `${storedUser.first_name}` : 'Guest'
 
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
@@ -28,24 +30,87 @@ export default function DashboardPage() {
     else if (h === '#settings') navigate('/settings', { replace: true })
   }, [location.hash, navigate])
 
-  const summary: SummaryCard[] = [
-    { key: 'employees', label: 'Employees', value: '18', sublabel: 'Total team members', color: 'text-blue-600', Icon: UsersIcon },
-    { key: 'pendingLeave', label: 'Pending Leave', value: '3', sublabel: 'Awaiting approval', color: 'text-emerald-600', Icon: CalendarIcon },
-    { key: 'docs', label: 'Documents', value: '2', sublabel: 'Needing review', color: 'text-violet-600', Icon: FileIcon },
-    { key: 'onLeave', label: 'On Leave Today', value: '1', sublabel: 'Team members out', color: 'text-amber-600', Icon: SunIcon },
-  ]
+  const [summary, setSummary] = useState<SummaryCard[]>([
+    { key: 'employees', label: 'Employees', value: '—', sublabel: 'Total team members', color: 'text-blue-600', Icon: UsersIcon },
+    { key: 'pendingLeave', label: 'Pending Leave', value: '—', sublabel: 'Awaiting approval', color: 'text-emerald-600', Icon: CalendarIcon },
+    { key: 'docs', label: 'Documents', value: '—', sublabel: 'Needing review', color: 'text-violet-600', Icon: FileIcon },
+    { key: 'onLeave', label: 'On Leave Today', value: '—', sublabel: 'Team members out', color: 'text-amber-600', Icon: SunIcon },
+  ])
 
-  const pendingTasks = [
-    { id: 1, text: 'Approve leave for John Doe', action: 'Approve' },
-    { id: 2, text: 'Upload missing contract for Jane Smith', action: 'Upload' },
-    { id: 3, text: 'Review policy update draft', action: 'Review' },
-  ]
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const [emps, pending, docs] = await Promise.all([
+          listEmployees({ page: 1, size: 1 }),
+          listLeaves({ page: 1, size: 1, status: 'pending' }),
+          listDocuments({ page: 1, size: 1 }),
+        ])
 
-  const recentActivity = [
-    { id: 1, name: 'Alice', event: 'added a new employee', time: '1h ago' },
-    { id: 2, name: 'Daniel', event: 'approved a leave request', time: '3h ago' },
-    { id: 3, name: 'Priya', event: 'uploaded a policy document', time: '1d ago' },
-  ]
+        // For on-leave-today we would need approved leaves with date window; use 0 for now (or compute from data when available)
+        const onLeaveToday = 0
+
+        if (!cancelled) {
+          setSummary((prev) => prev.map((card) => {
+            if (card.key === 'employees') return { ...card, value: String(emps.total) }
+            if (card.key === 'pendingLeave') return { ...card, value: String(pending.total) }
+            if (card.key === 'docs') return { ...card, value: String(docs.total) }
+            if (card.key === 'onLeave') return { ...card, value: String(onLeaveToday) }
+            return card
+          }))
+        }
+      } catch (e) {
+        // Silently ignore for dashboard; could add a toast
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
+
+  const [pendingTasks, setPendingTasks] = useState([
+    { id: 1, text: 'Loading pending tasks…', action: '' },
+  ])
+  useEffect(() => {
+    let cancelled = false
+    async function loadPending() {
+      try {
+        const { items } = await listLeaves({ page: 1, size: 5, status: 'pending' })
+        if (!cancelled) {
+          setPendingTasks(
+            items.map((l) => ({ id: l.id, text: `Approve ${l.leave_type} leave request #${l.id}`, action: 'Approve' }))
+          )
+        }
+      } catch {
+        if (!cancelled) setPendingTasks([])
+      }
+    }
+    loadPending()
+    return () => { cancelled = true }
+  }, [])
+
+  const [recentActivity, setRecentActivity] = useState([
+    { id: 1, name: 'System', event: 'Loading…', time: '' },
+  ])
+  useEffect(() => {
+    let cancelled = false
+    async function loadRecent() {
+      try {
+        const [docs, leaves] = await Promise.all([
+          listDocuments({ page: 1, size: 3 }),
+          listLeaves({ page: 1, size: 3 }),
+        ])
+        const items = [
+          ...docs.items.map((d) => ({ id: d.id, name: 'Document', event: `uploaded ${d.filename}`, time: '' })),
+          ...leaves.items.map((l) => ({ id: l.id + 10000, name: 'Leave', event: `request ${l.leave_type} (#${l.id})`, time: '' })),
+        ].slice(0, 3)
+        if (!cancelled) setRecentActivity(items as any)
+      } catch {
+        if (!cancelled) setRecentActivity([])
+      }
+    }
+    loadRecent()
+    return () => { cancelled = true }
+  }, [])
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-neutral-900 text-slate-900 dark:text-slate-100">

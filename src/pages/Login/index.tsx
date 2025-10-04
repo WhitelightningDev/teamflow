@@ -1,23 +1,36 @@
 import type { FormEvent } from 'react'
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { login as apiLogin, saveAuth } from '../../lib/api'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(true)
   const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const navigate = useNavigate()
 
   const emailValid = useMemo(() => /.+@.+\..+/.test(email), [email])
   const passwordValid = password.length >= 8
   const allValid = emailValid && passwordValid
 
-  function onSubmit(e: FormEvent) {
+  async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setSubmitted(true)
     if (!allValid) return
-    // Replace with real auth flow
-    alert(`Welcome back to Teamflow${remember ? ' — we\'ll keep you signed in.' : '.'}`)
+    setError(null)
+    setLoading(true)
+    try {
+      const auth = await apiLogin({ email, password })
+      saveAuth(auth)
+      navigate('/dashboard')
+    } catch (err: any) {
+      setError(err?.message || 'Login failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -98,12 +111,16 @@ export default function Login() {
                   </label>
                 </div>
 
+                {error && (
+                  <p className="text-sm text-rose-600">{error}</p>
+                )}
+
                 <button
                   type="submit"
-                  disabled={!allValid && submitted}
+                  disabled={loading || (!allValid && submitted)}
                   className="w-full rounded-lg bg-blue-600 text-white py-2.5 font-medium shadow-sm hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  Login
+                  {loading ? 'Signing in…' : 'Login'}
                 </button>
 
                 <p className="text-sm text-center">
@@ -167,4 +184,3 @@ function MicrosoftIcon({ className = '' }: { className?: string }) {
     </svg>
   )
 }
-

@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Breadcrumbs from '../../components/Breadcrumbs'
+import { getCompany, updateCompany, getProfile, updateProfile, getNotifications, updateNotifications, changePasswordApi } from '../../lib/api'
 
 type Tab = 'Profile' | 'Account' | 'Notifications' | 'Security'
 
@@ -7,11 +8,14 @@ export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>('Profile')
 
   // Profile
-  const [companyName, setCompanyName] = useState('Acme Co.')
-  const [contactEmail, setContactEmail] = useState('hr@acme.co')
+  const [companyName, setCompanyName] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
   const [logoFileName, setLogoFileName] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Account / Security
+  const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [twoFactor, setTwoFactor] = useState(false)
@@ -20,11 +24,82 @@ export default function SettingsPage() {
   const [emailNotifs, setEmailNotifs] = useState(true)
   const [appNotifs, setAppNotifs] = useState(true)
 
-  const saveProfile = () => alert('Profile saved')
-  const changePassword = () => {
+  // Load settings
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      setError(null)
+      try {
+        const [company, profile, notifs] = await Promise.all([
+          getCompany(),
+          getProfile(),
+          getNotifications(),
+        ])
+        if (cancelled) return
+        setCompanyName(company.name)
+        setContactEmail(profile.email)
+        setEmailNotifs(!!notifs.email_notifications)
+        setAppNotifs(!!notifs.push_notifications)
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message || 'Failed to load settings')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
+
+  const saveProfile = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      await updateCompany({ name: companyName })
+      await updateProfile({ email: contactEmail })
+      alert('Profile saved')
+    } catch (e: any) {
+      setError(e?.message || 'Failed to save profile')
+    } finally {
+      setLoading(false)
+    }
+  }
+  const changePassword = async () => {
     if (newPassword.length < 8) return alert('Password must be at least 8 characters.')
     if (newPassword !== confirmPassword) return alert('Passwords do not match.')
-    alert('Password changed')
+    try {
+      setLoading(true)
+      setError(null)
+      await changePasswordApi({ current_password: currentPassword, new_password: newPassword })
+      alert('Password changed')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (e: any) {
+      setError(e?.message || 'Failed to change password')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function onToggleEmailNotifications(checked: boolean) {
+    setEmailNotifs(checked)
+    try {
+      await updateNotifications({ email_notifications: checked })
+    } catch {
+      // revert on error
+      setEmailNotifs(!checked)
+      alert('Failed to update email notifications')
+    }
+  }
+  async function onToggleAppNotifications(checked: boolean) {
+    setAppNotifs(checked)
+    try {
+      await updateNotifications({ push_notifications: checked })
+    } catch {
+      setAppNotifs(!checked)
+      alert('Failed to update app notifications')
+    }
   }
 
   return (
@@ -51,6 +126,8 @@ export default function SettingsPage() {
 
         {/* Content */}
         <div className="rounded-2xl bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/10 shadow-sm p-6">
+          {loading && <p className="text-sm text-slate-500 mb-3">Loading…</p>}
+          {error && <p className="text-sm text-rose-600 mb-3">{error}</p>}
           {tab === 'Profile' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
@@ -96,6 +173,15 @@ export default function SettingsPage() {
                 <h2 className="text-lg font-semibold">Change Password</h2>
               </div>
               <div>
+                <label className="block text-sm font-medium">Current password</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-neutral-900/60 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+              <div>
                 <label className="block text-sm font-medium">New password</label>
                 <input
                   type="password"
@@ -122,11 +208,11 @@ export default function SettingsPage() {
           {tab === 'Notifications' && (
             <div className="grid grid-cols-1 gap-4">
               <label className="inline-flex items-center gap-3">
-                <input type="checkbox" checked={emailNotifs} onChange={(e) => setEmailNotifs(e.target.checked)} className="h-4 w-4 rounded border-black/20 text-blue-600 focus:ring-blue-600" />
+                <input type="checkbox" checked={emailNotifs} onChange={(e) => onToggleEmailNotifications(e.target.checked)} className="h-4 w-4 rounded border-black/20 text-blue-600 focus:ring-blue-600" />
                 <span>Email notifications</span>
               </label>
               <label className="inline-flex items-center gap-3">
-                <input type="checkbox" checked={appNotifs} onChange={(e) => setAppNotifs(e.target.checked)} className="h-4 w-4 rounded border-black/20 text-blue-600 focus:ring-blue-600" />
+                <input type="checkbox" checked={appNotifs} onChange={(e) => onToggleAppNotifications(e.target.checked)} className="h-4 w-4 rounded border-black/20 text-blue-600 focus:ring-blue-600" />
                 <span>App notifications</span>
               </label>
             </div>

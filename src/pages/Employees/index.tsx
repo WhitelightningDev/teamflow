@@ -1,10 +1,35 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { listEmployees, createEmployee, deleteEmployee, type EmployeeOut } from '../../lib/api'
 import Breadcrumbs from '../../components/Breadcrumbs'
+
+type UIEmployee = { id: string | number; name: string; role: string; status: 'Active' | 'Inactive' }
 
 export default function EmployeesPage() {
   const [query, setQuery] = useState('')
-  const [employees, setEmployees] = useState(() => initialEmployees)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [employees, setEmployees] = useState<UIEmployee[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      setError(null)
+      try {
+        const res = await listEmployees({ page: 1, size: 50 })
+        if (cancelled) return
+        const items = res.items.map(mapEmployee)
+        setEmployees(items)
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message || 'Failed to load employees')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -14,14 +39,36 @@ export default function EmployeesPage() {
     )
   }, [employees, query])
 
-  function addEmployee() {
-    const n = prompt('Name? (e.g. Alex Johnson)')
-    const r = n ? prompt('Role? (e.g. Designer)') : undefined
-    if (n && r) {
-      setEmployees((list) => [
-        { id: String(Date.now()), name: n, role: r, status: 'Active' },
-        ...list,
-      ])
+  async function addEmployee() {
+    const first = prompt('First name?')
+    const last = first ? prompt('Last name?') : undefined
+    const email = last ? prompt('Email?') : undefined
+    const role = email ? prompt('Role? (e.g. employee)') : undefined
+    if (!first || !last || !email) return
+    try {
+      const today = new Date().toISOString().slice(0, 10)
+      const created = await createEmployee({
+        first_name: first,
+        last_name: last,
+        email,
+        role: role || 'employee',
+        start_date: today,
+        is_active: true,
+      })
+      // Refresh list
+      const res = await listEmployees({ page: 1, size: 50 })
+      setEmployees(res.items.map(mapEmployee))
+    } catch (e) {
+      alert('Failed to create employee')
+    }
+  }
+
+  async function removeEmployee(id: string | number) {
+    try {
+      await deleteEmployee(id)
+      setEmployees((prev) => prev.filter((e) => e.id !== id))
+    } catch (e) {
+      alert('Failed to delete employee')
     }
   }
 
@@ -65,7 +112,13 @@ export default function EmployeesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-black/5 dark:divide-white/10">
-              {filtered.map((e) => (
+              {loading && (
+                <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-500">Loading…</td></tr>
+              )}
+              {!loading && error && (
+                <tr><td colSpan={4} className="px-4 py-6 text-center text-rose-600">{error}</td></tr>
+              )}
+              {!loading && !error && filtered.map((e) => (
                 <tr key={e.id} className="hover:bg-black/5 dark:hover:bg-white/5">
                   <td className="px-4 py-3">{e.name}</td>
                   <td className="px-4 py-3">{e.role}</td>
@@ -79,7 +132,7 @@ export default function EmployeesPage() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 justify-end">
                       <button className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Edit</button>
-                      <button className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Delete</button>
+                      <button onClick={() => removeEmployee(e.id)} className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Delete</button>
                       <Link to="#" className="rounded-md bg-blue-600 text-white px-2.5 py-1 hover:bg-blue-700">Details</Link>
                     </div>
                   </td>
@@ -91,7 +144,10 @@ export default function EmployeesPage() {
 
         {/* Cards (mobile) */}
         <div className="md:hidden grid grid-cols-1 gap-3">
-          {filtered.map((e) => (
+          {loading && (
+            <div className="text-center text-slate-500">Loading…</div>
+          )}
+          {!loading && !error && filtered.map((e) => (
             <div key={e.id} className="rounded-xl bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/10 p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
@@ -106,7 +162,7 @@ export default function EmployeesPage() {
               </div>
               <div className="mt-3 flex items-center gap-2">
                 <button className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Edit</button>
-                <button className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Delete</button>
+                <button onClick={() => removeEmployee(e.id)} className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Delete</button>
                 <Link to="#" className="rounded-md bg-blue-600 text-white px-2.5 py-1 hover:bg-blue-700">Details</Link>
               </div>
             </div>
@@ -117,12 +173,12 @@ export default function EmployeesPage() {
   )
 }
 
-const initialEmployees = [
-  { id: '1', name: 'Alex Johnson', role: 'Product Manager', status: 'Active' },
-  { id: '2', name: 'Priya Patel', role: 'Frontend Engineer', status: 'Active' },
-  { id: '3', name: 'Sam Lee', role: 'Designer', status: 'Inactive' },
-  { id: '4', name: 'Maria Garcia', role: 'HR Specialist', status: 'Active' },
-]
+function mapEmployee(e: EmployeeOut): UIEmployee {
+  const name = [e.first_name, e.last_name].filter(Boolean).join(' ') || e.email
+  const role = e.role || 'employee'
+  const status: 'Active' | 'Inactive' = e.is_active === false ? 'Inactive' : 'Active'
+  return { id: e.id, name, role, status }
+}
 
 function SearchIcon({ className = '' }: { className?: string }) {
   return (

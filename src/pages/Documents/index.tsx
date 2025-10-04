@@ -1,25 +1,52 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Breadcrumbs from '../../components/Breadcrumbs'
+import { listDocuments, uploadDocument, deleteDocument, type DocumentOut } from '../../lib/api'
 
-type Doc = { id: string; name: string; uploadedAt: string; owner?: string; category?: string }
+type Doc = { id: number | string; name: string; uploadedAt: string; owner?: string; category?: string }
 
 export default function DocumentsPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [isDragging, setIsDragging] = useState(false)
-  const [docs, setDocs] = useState<Doc[]>(() => initialDocs)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [docs, setDocs] = useState<Doc[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      setError(null)
+      try {
+        const res = await listDocuments({ page: 1, size: 50 })
+        if (!cancelled) setDocs(res.items.map(mapDoc))
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message || 'Failed to load documents')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
 
   const openPicker = () => fileInputRef.current?.click()
 
-  const onFiles = useCallback((files: FileList | null) => {
+  const onFiles = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0) return
-    const additions: Doc[] = Array.from(files).map((f) => ({
-      id: `${Date.now()}-${f.name}`,
-      name: f.name,
-      uploadedAt: new Date().toISOString().slice(0, 10),
-      owner: 'Unassigned',
-      category: 'General',
-    }))
-    setDocs((prev) => [...additions, ...prev])
+    setLoading(true)
+    setError(null)
+    try {
+      const uploaded: Doc[] = []
+      for (const f of Array.from(files)) {
+        const created = await uploadDocument(f)
+        uploaded.push(mapDoc(created))
+      }
+      setDocs((prev) => [...uploaded, ...prev])
+    } catch (e: any) {
+      setError(e?.message || 'Upload failed')
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   function onDrop(e: React.DragEvent<HTMLDivElement>) {
@@ -60,6 +87,12 @@ export default function DocumentsPage() {
         </div>
 
         {/* List/Grid */}
+        {loading && (
+          <div className="text-sm text-slate-500">Loading…</div>
+        )}
+        {error && (
+          <div className="text-sm text-rose-600">{error}</div>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {docs.map((d) => (
             <div key={d.id} className="rounded-2xl bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/10 shadow-sm p-4">
@@ -73,9 +106,9 @@ export default function DocumentsPage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button className="rounded-md border border-black/10 dark:border-white/15 px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10">View</button>
-                  <button className="rounded-md border border-black/10 dark:border-white/15 px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10">Download</button>
-                  <button onClick={() => setDocs((prev) => prev.filter((x) => x.id !== d.id))} className="rounded-md border border-black/10 dark:border-white/15 px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10 text-rose-600">Delete</button>
+                  <button className="rounded-md border border-black/10 dark:border-white/15 px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10" onClick={() => alert('View not implemented')}>View</button>
+                  <button className="rounded-md border border-black/10 dark:border-white/15 px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10" onClick={() => alert('Download not implemented')}>Download</button>
+                  <button onClick={async () => { try { await deleteDocument(d.id); setDocs((prev) => prev.filter((x) => x.id !== d.id)) } catch { alert('Delete failed') } }} className="rounded-md border border-black/10 dark:border-white/15 px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10 text-rose-600">Delete</button>
                 </div>
               </div>
             </div>
@@ -86,11 +119,6 @@ export default function DocumentsPage() {
   )
 }
 
-const initialDocs: Doc[] = [
-  { id: 'd1', name: 'Employee Handbook.pdf', uploadedAt: '2025-09-10', owner: 'HR', category: 'Policy' },
-  { id: 'd2', name: 'Alex_Johnson_Contract.pdf', uploadedAt: '2025-08-22', owner: 'Alex Johnson', category: 'Contract' },
-  { id: 'd3', name: 'Holiday_Schedule_2025.xlsx', uploadedAt: '2025-08-01', owner: 'HR', category: 'Schedule' },
-]
 
 function FileIcon({ className = '' }: { className?: string }) {
   return (
@@ -98,4 +126,15 @@ function FileIcon({ className = '' }: { className?: string }) {
       <path d="M6 2h7l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m7 1.5V8h4.5" />
     </svg>
   )
+}
+
+function mapDoc(d: DocumentOut): Doc {
+  const uploaded = typeof d.uploaded_at === 'string' ? d.uploaded_at.slice(0, 10) : d.uploaded_at ? new Date(d.uploaded_at).toISOString().slice(0, 10) : ''
+  return {
+    id: d.id,
+    name: d.filename,
+    uploadedAt: uploaded,
+    owner: d.uploaded_by ? `User #${d.uploaded_by}` : 'Unknown',
+    category: d.content_type || 'Document',
+  }
 }
