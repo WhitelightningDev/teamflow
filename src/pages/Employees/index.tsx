@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { listEmployees, createEmployee, deleteEmployee, type EmployeeOut } from '../../lib/api'
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Switch, Select, SelectItem } from '@heroui/react'
+import { listEmployees, deleteEmployee, type EmployeeOut } from '../../lib/api'
+import { Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/react'
 import Breadcrumbs from '../../components/Breadcrumbs'
+import AddEmployee from './components/AddEmployee'
 
 type UIEmployee = { id: string | number; name: string; role: string; status: 'Active' | 'Inactive' }
 
@@ -42,47 +43,14 @@ export default function EmployeesPage() {
 
   // Add Employee modal state
   const [addOpen, setAddOpen] = useState(false)
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [emailNew, setEmailNew] = useState('')
-  const [roleNew, setRoleNew] = useState('employee')
-  const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10))
-  const [activeNew, setActiveNew] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [formError, setFormError] = useState<string | null>(null)
-  const [submitted, setSubmitted] = useState(false)
 
   function openAdd() {
-    setFirstName(''); setLastName(''); setEmailNew(''); setRoleNew('employee');
-    setStartDate(new Date().toISOString().slice(0, 10)); setActiveNew(true); setFormError(null);
     setAddOpen(true)
   }
 
-  async function submitAdd() {
-    setFormError(null)
-    setSubmitted(true)
-    if (!firstName.trim() || !lastName.trim() || !/.+@.+\..+/.test(emailNew)) {
-      setFormError('Please fill first name, last name and a valid email.')
-      return
-    }
-    try {
-      setSaving(true)
-      await createEmployee({
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        email: emailNew.trim(),
-        role: roleNew || 'employee',
-        start_date: startDate,
-        is_active: activeNew,
-      })
-      const res = await listEmployees({ page: 1, size: 50 })
-      setEmployees(res.items.map(mapEmployee))
-      setAddOpen(false)
-    } catch (e: any) {
-      setFormError(e?.message || 'Failed to create employee')
-    } finally {
-      setSaving(false)
-    }
+  async function refreshEmployees() {
+    const res = await listEmployees({ page: 1, size: 50 })
+    setEmployees(res.items.map(mapEmployee))
   }
 
   async function removeEmployee(id: string | number) {
@@ -203,133 +171,24 @@ export default function EmployeesPage() {
           base: 'bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/10 shadow-2xl rounded-2xl',
           header: 'px-6 pt-6 pb-2',
           body: 'px-6 py-4',
-          footer: 'px-6 pb-6',
         }}
       >
         <ModalContent>
-          {(onClose) => (
+          {() => (
             <>
               <ModalHeader className="flex flex-col gap-1">
                 Add Employee
                 <p className="text-sm font-normal text-slate-600 dark:text-slate-300">Create a new team member profile.</p>
               </ModalHeader>
               <ModalBody>
-                {formError && (
-                  <div className="text-sm text-rose-600 bg-rose-50 dark:bg-rose-500/10 rounded-md px-3 py-2">{formError}</div>
-                )}
-                <form className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <Input
-                    label={
-                      <span className="text-slate-700 dark:text-slate-200">
-                        First name
-                        <span className="block text-xs font-normal text-slate-500">e.g., Alex</span>
-                      </span>
-                    }
-                    labelPlacement="outside"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    isRequired
-                    isInvalid={submitted && !firstName.trim()}
-                    errorMessage={submitted && !firstName.trim() ? 'Required' : undefined}
-                    size="md"
-                    variant="bordered"
-                    classNames={{
-                      inputWrapper: 'bg-white dark:bg-neutral-900/60 border border-black/10 dark:border-white/15 shadow-sm',
-                      label: 'text-slate-700 dark:text-slate-200'
-                    }}
-                  />
-                  <Input
-                    label={
-                      <span className="text-slate-700 dark:text-slate-200">
-                        Last name
-                        <span className="block text-xs font-normal text-slate-500">e.g., Johnson</span>
-                      </span>
-                    }
-                    labelPlacement="outside"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    isRequired
-                    isInvalid={submitted && !lastName.trim()}
-                    errorMessage={submitted && !lastName.trim() ? 'Required' : undefined}
-                    size="md"
-                    variant="bordered"
-                    classNames={{
-                      inputWrapper: 'bg-white dark:bg-neutral-900/60 border border-black/10 dark:border-white/15 shadow-sm',
-                      label: 'text-slate-700 dark:text-slate-200'
-                    }}
-                  />
-                  <Input
-                    className="sm:col-span-2"
-                    type="email"
-                    label={
-                      <span className="text-slate-700 dark:text-slate-200">
-                        Email
-                        <span className="block text-xs font-normal text-slate-500">you@company.com</span>
-                      </span>
-                    }
-                    labelPlacement="outside"
-                    value={emailNew}
-                    onChange={(e) => setEmailNew(e.target.value)}
-                    isRequired
-                    isInvalid={submitted && !!emailNew && !/.+@.+\..+/.test(emailNew)}
-                    errorMessage={submitted && !!emailNew && !/.+@.+\..+/.test(emailNew) ? 'Enter a valid email' : undefined}
-                    size="md"
-                    variant="bordered"
-                    classNames={{
-                      inputWrapper: 'bg-white dark:bg-neutral-900/60 border border-black/10 dark:border-white/15 shadow-sm',
-                      label: 'text-slate-700 dark:text-slate-200'
-                    }}
-                  />
-                  <Select
-                    label={
-                      <span className="text-slate-700 dark:text-slate-200">
-                        Role
-                        <span className="block text-xs font-normal text-slate-500">choose access level</span>
-                      </span>
-                    }
-                    labelPlacement="outside"
-                    selectedKeys={new Set([roleNew])}
-                    onSelectionChange={(keys) => setRoleNew(Array.from(keys)[0] as string)}
-                    size="md"
-                    variant="bordered"
-                    classNames={{
-                      trigger: 'bg-white dark:bg-neutral-900/60 border border-black/10 dark:border-white/15 shadow-sm',
-                      label: 'text-slate-700 dark:text-slate-200'
-                    }}
-                  >
-                    <SelectItem key="employee">Employee</SelectItem>
-                    <SelectItem key="manager">Manager</SelectItem>
-                    <SelectItem key="admin">Admin</SelectItem>
-                  </Select>
-                  <Input
-                    type="date"
-                    label={
-                      <span className="text-slate-700 dark:text-slate-200">
-                        Start date
-                        <span className="block text-xs font-normal text-slate-500">YYYY-MM-DD</span>
-                      </span>
-                    }
-                    labelPlacement="outside"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    size="md"
-                    variant="bordered"
-                    classNames={{
-                      inputWrapper: 'bg-white dark:bg-neutral-900/60 border border-black/10 dark:border-white/15 shadow-sm',
-                      label: 'text-slate-700 dark:text-slate-200'
-                    }}
-                  />
-                  <div className="sm:col-span-2 flex items-center gap-3 pt-2">
-                    <Switch isSelected={activeNew} onValueChange={setActiveNew} size="sm">
-                      Active
-                    </Switch>
-                  </div>
-                </form>
+                <AddEmployee
+                  onCancel={() => setAddOpen(false)}
+                  onSuccess={async () => {
+                    await refreshEmployees()
+                    setAddOpen(false)
+                  }}
+                />
               </ModalBody>
-              <ModalFooter>
-                <Button variant="light" onPress={onClose} disabled={saving} className="shadow-sm">Cancel</Button>
-                <Button color="primary" onPress={submitAdd} isLoading={saving} className="shadow-sm">Save</Button>
-              </ModalFooter>
             </>
           )}
         </ModalContent>
