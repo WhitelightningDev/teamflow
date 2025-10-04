@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import Breadcrumbs from '../../components/Breadcrumbs'
 
 type Status = 'Pending' | 'Approved' | 'Rejected'
 
@@ -19,6 +20,7 @@ export default function LeavesPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-neutral-900 text-slate-900 dark:text-slate-100">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <Breadcrumbs items={[{ label: 'Dashboard', to: '/dashboard' }, { label: 'Leaves' }]} />
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
@@ -118,4 +120,3 @@ const initialRequests = [
   { id: '3', employee: 'Sam Lee', type: 'Personal', startDate: '2025-10-20', endDate: '2025-10-21', status: 'Rejected' as Status },
   { id: '4', employee: 'Maria Garcia', type: 'Vacation', startDate: '2025-11-01', endDate: '2025-11-07', status: 'Pending' as Status },
 ]
-

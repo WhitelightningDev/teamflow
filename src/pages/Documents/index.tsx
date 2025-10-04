@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
+import Breadcrumbs from '../../components/Breadcrumbs'
 
 type Doc = { id: string; name: string; uploadedAt: string; owner?: string; category?: string }
 
@@ -31,6 +32,7 @@ export default function DocumentsPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-neutral-900 text-slate-900 dark:text-slate-100">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <Breadcrumbs items={[{ label: 'Dashboard', to: '/dashboard' }, { label: 'Documents' }]} />
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>

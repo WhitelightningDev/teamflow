@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Breadcrumbs from '../../components/Breadcrumbs'
 
 type Tab = 'Profile' | 'Account' | 'Notifications' | 'Security'
 
@@ -29,6 +30,7 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-neutral-900 text-slate-900 dark:text-slate-100">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <Breadcrumbs items={[{ label: 'Dashboard', to: '/dashboard' }, { label: 'Settings' }]} />
         {/* Header */}
         <div className="flex items-center justify-between">
           <h1 className="text-2xl sm:text-3xl font-bold">Settings</h1>
@@ -145,4 +147,3 @@ export default function SettingsPage() {
     </div>
   )
 }
-
