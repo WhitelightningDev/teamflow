@@ -1,5 +1,4 @@
 import React from 'react'
-import { Form, Input, Select, SelectItem, Checkbox, Button } from '@heroui/react'
 import { createEmployee, type EmployeeIn, type EmployeeOut } from '../../../lib/api'
 
 export default function AddEmployee({ onSuccess, onCancel }: { onSuccess: (emp: EmployeeOut) => void; onCancel: () => void }) {
@@ -58,81 +57,106 @@ export default function AddEmployee({ onSuccess, onCancel }: { onSuccess: (emp: 
   }
 
   return (
-    <Form className="w-full" validationErrors={errors} onSubmit={onSubmit}>
+    <form className="w-full" onSubmit={onSubmit}>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        <Input
-          isRequired
-          label="First name"
-          labelPlacement="outside"
-          name="first_name"
-          placeholder="e.g., Alex"
-        />
-        <Input
-          isRequired
-          label="Last name"
-          labelPlacement="outside"
-          name="last_name"
-          placeholder="e.g., Johnson"
-        />
+        {/* First name */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">First name<span className="text-rose-600">*</span></label>
+          <input
+            name="first_name"
+            placeholder="e.g., Alex"
+            className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-neutral-900/60 px-3 py-2 placeholder:text-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+          />
+          {errors.first_name && <p className="mt-1 text-xs text-rose-600">{errors.first_name as string}</p>}
+        </div>
 
-        <Input
-          isRequired
-          label="Email"
-          labelPlacement="outside"
-          name="email"
-          placeholder="you@company.com"
-          type="email"
-        />
+        {/* Last name */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">Last name<span className="text-rose-600">*</span></label>
+          <input
+            name="last_name"
+            placeholder="e.g., Johnson"
+            className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-neutral-900/60 px-3 py-2 placeholder:text-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+          />
+          {errors.last_name && <p className="mt-1 text-xs text-rose-600">{errors.last_name as string}</p>}
+        </div>
 
-        <Input
-          label="Title"
-          labelPlacement="outside"
-          name="title"
-          placeholder="e.g., Product Manager"
-        />
+        {/* Email */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">Email<span className="text-rose-600">*</span></label>
+          <input
+            type="email"
+            name="email"
+            placeholder="you@company.com"
+            className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-neutral-900/60 px-3 py-2 placeholder:text-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+          />
+          {errors.email && <p className="mt-1 text-xs text-rose-600">{errors.email as string}</p>}
+        </div>
 
-        <Select
-          isRequired
-          label="Role"
-          labelPlacement="outside"
-          name="role"
-          selectedKeys={new Set([role])}
-          onSelectionChange={(keys) => setRole(Array.from(keys)[0] as string)}
-          placeholder="Select role"
-        >
-          <SelectItem key="employee">Employee</SelectItem>
-          <SelectItem key="manager">Manager</SelectItem>
-          <SelectItem key="admin">Admin</SelectItem>
-        </Select>
+        {/* Title */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">Title</label>
+          <input
+            name="title"
+            placeholder="e.g., Product Manager"
+            className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-neutral-900/60 px-3 py-2 placeholder:text-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+          />
+        </div>
 
-        <Input
-          type="date"
-          label="Start date"
-          labelPlacement="outside"
-          name="start_date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-        />
-
-        <Input
-          type="number"
-          label="Manager ID (optional)"
-          labelPlacement="outside"
-          name="manager_id"
-          placeholder="e.g., 42"
-          min={0}
-        />
-
-        <div className="sm:col-span-2">
-          <Checkbox
-            classNames={{ label: 'text-small' }}
-            isSelected={isActive}
-            onValueChange={setIsActive}
-            name="is_active"
-            value="true"
+        {/* Role */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">Role<span className="text-rose-600">*</span></label>
+          <select
+            name="role"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-neutral-900/60 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
           >
-            Active
-          </Checkbox>
+            <option value="employee">Employee</option>
+            <option value="manager">Manager</option>
+            <option value="admin">Admin</option>
+            <option value="hr">HR</option>
+            <option value="staff">Staff</option>
+          </select>
+        </div>
+
+        {/* Start date */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">Start date</label>
+          <input
+            type="date"
+            name="start_date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-neutral-900/60 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+          />
+        </div>
+
+        {/* Manager id */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">Manager ID (optional)</label>
+          <input
+            type="number"
+            min={0}
+            name="manager_id"
+            placeholder="e.g., 42"
+            className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-neutral-900/60 px-3 py-2 placeholder:text-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+          />
+        </div>
+
+        {/* Active */}
+        <div className="sm:col-span-2">
+          <label className="inline-flex items-center gap-2 select-none text-sm">
+            <input
+              type="checkbox"
+              checked={isActive}
+              onChange={(e) => setIsActive(e.target.checked)}
+              className="h-4 w-4 rounded border-black/20 text-blue-600 focus:ring-blue-600"
+              name="is_active"
+              value="true"
+            />
+            <span>Active</span>
+          </label>
         </div>
 
         {errors.form && (
@@ -141,14 +165,13 @@ export default function AddEmployee({ onSuccess, onCancel }: { onSuccess: (emp: 
       </div>
 
       <div className="mt-6 flex gap-3 justify-end">
-        <Button variant="bordered" onPress={onCancel} disabled={submitting}>
+        <button type="button" onClick={onCancel} disabled={submitting} className="rounded-lg border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">
           Cancel
-        </Button>
-        <Button color="primary" type="submit" isLoading={submitting}>
-          Save
-        </Button>
+        </button>
+        <button type="submit" disabled={submitting} className="rounded-lg bg-blue-600 text-white px-4 py-2 font-medium shadow-sm hover:bg-blue-700 disabled:opacity-70">
+          {submitting ? 'Saving…' : 'Save'}
+        </button>
       </div>
-    </Form>
+    </form>
   )
 }
-

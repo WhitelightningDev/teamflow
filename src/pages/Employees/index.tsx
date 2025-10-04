@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+//
 import { listEmployees, deleteEmployee, type EmployeeOut } from '../../lib/api'
 import { Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/react'
 import Breadcrumbs from '../../components/Breadcrumbs'
 import AddEmployee from './components/AddEmployee'
+import EmployeeDetails from './components/EmployeeDetails'
 
 type UIEmployee = { id: string | number; name: string; role: string; status: 'Active' | 'Inactive' }
 
@@ -43,6 +44,8 @@ export default function EmployeesPage() {
 
   // Add Employee modal state
   const [addOpen, setAddOpen] = useState(false)
+  const [detailsOpen, setDetailsOpen] = useState(false)
+  const [selectedId, setSelectedId] = useState<number | string | null>(null)
 
   function openAdd() {
     setAddOpen(true)
@@ -123,7 +126,12 @@ export default function EmployeesPage() {
                     <div className="flex items-center gap-2 justify-end">
                       <button className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Edit</button>
                       <button onClick={() => removeEmployee(e.id)} className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Delete</button>
-                      <Link to="#" className="rounded-md bg-blue-600 text-white px-2.5 py-1 hover:bg-blue-700">Details</Link>
+                      <button
+                        onClick={() => { setSelectedId(e.id); setDetailsOpen(true) }}
+                        className="rounded-md bg-blue-600 text-white px-2.5 py-1 hover:bg-blue-700"
+                      >
+                        Details
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -153,7 +161,12 @@ export default function EmployeesPage() {
               <div className="mt-3 flex items-center gap-2">
                 <button className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Edit</button>
                 <button onClick={() => removeEmployee(e.id)} className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Delete</button>
-                <Link to="#" className="rounded-md bg-blue-600 text-white px-2.5 py-1 hover:bg-blue-700">Details</Link>
+                <button
+                  onClick={() => { setSelectedId(e.id); setDetailsOpen(true) }}
+                  className="rounded-md bg-blue-600 text-white px-2.5 py-1 hover:bg-blue-700"
+                >
+                  Details
+                </button>
               </div>
             </div>
           ))}
@@ -188,6 +201,40 @@ export default function EmployeesPage() {
                     setAddOpen(false)
                   }}
                 />
+              </ModalBody>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
+      {/* Employee Details Modal */}
+      <Modal
+        isOpen={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        backdrop="blur"
+        size="lg"
+        radius="lg"
+        classNames={{
+          base: 'bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/10 shadow-2xl rounded-2xl',
+          header: 'px-6 pt-6 pb-2',
+          body: 'px-6 py-4',
+        }}
+      >
+        <ModalContent>
+          {() => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">Employee Details</ModalHeader>
+              <ModalBody>
+                {selectedId != null && (
+                  <EmployeeDetails
+                    employeeId={selectedId}
+                    onCancel={() => setDetailsOpen(false)}
+                    onUpdated={async () => {
+                      await refreshEmployees()
+                      setDetailsOpen(false)
+                    }}
+                  />
+                )}
               </ModalBody>
             </>
           )}

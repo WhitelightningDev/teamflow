@@ -158,6 +158,17 @@ export async function createEmployee(payload: EmployeeIn): Promise<EmployeeOut> 
   })
 }
 
+export async function getEmployee(id: number | string): Promise<EmployeeOut> {
+  return apiFetch<EmployeeOut>(`/api/v1/employees/${id}`, { method: 'GET' })
+}
+
+export async function updateEmployee(id: number | string, payload: Partial<EmployeeIn>): Promise<EmployeeOut> {
+  return apiFetch<EmployeeOut>(`/api/v1/employees/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+}
+
 export async function deleteEmployee(id: number | string): Promise<{ status: string; id: number | string }> {
   return apiFetch<{ status: string; id: number | string }>(`/api/v1/employees/${id}`, {
     method: 'DELETE',

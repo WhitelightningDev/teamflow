@@ -1,10 +1,9 @@
 import React from 'react'
-import { Form, Input, Select, SelectItem, Checkbox, Button, Card, CardHeader, CardBody, Divider } from '@heroui/react'
-import type { ValidationErrors } from '@react-types/shared'
+import { Input, Select, SelectItem, Checkbox, Button, Card, CardHeader, CardBody, Divider } from '@heroui/react'
 import { createEmployee, type EmployeeIn, type EmployeeOut } from '../../lib/api'
 
 export default function AddEmployee({ onSuccess, onCancel }: { onSuccess: (emp: EmployeeOut) => void; onCancel: () => void }) {
-  const [errors, setErrors] = React.useState<ValidationErrors>({})
+  const [errors, setErrors] = React.useState<Record<string, string | string[]>>({})
   const [submitting, setSubmitting] = React.useState(false)
   const [role, setRole] = React.useState('employee')
   const [isActive, setIsActive] = React.useState(true)
@@ -20,7 +19,7 @@ export default function AddEmployee({ onSuccess, onCancel }: { onSuccess: (emp: 
     e.preventDefault()
     const data = Object.fromEntries(new FormData(e.currentTarget)) as Record<string, FormDataEntryValue>
 
-    const newErrors: ValidationErrors = {}
+    const newErrors: Record<string, string> = {}
     const first_name = String(data.first_name || '').trim()
     const last_name = String(data.last_name || '').trim()
     const email = String(data.email || '').trim()
@@ -52,7 +51,7 @@ export default function AddEmployee({ onSuccess, onCancel }: { onSuccess: (emp: 
       const created = await createEmployee(payload)
       onSuccess(created)
     } catch (err: any) {
-      setErrors({ form: err?.message || 'Failed to create employee' } as ValidationErrors)
+      setErrors({ form: err?.message || 'Failed to create employee' })
     } finally {
       setSubmitting(false)
     }
@@ -67,7 +66,7 @@ export default function AddEmployee({ onSuccess, onCancel }: { onSuccess: (emp: 
         </CardHeader>
         <Divider />
         <CardBody>
-          <Form className="w-full" validationErrors={errors} onSubmit={onSubmit}>
+          <form className="w-full" onSubmit={onSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input
                 isRequired
@@ -78,6 +77,12 @@ export default function AddEmployee({ onSuccess, onCancel }: { onSuccess: (emp: 
                 labelPlacement="outside"
                 name="first_name"
                 placeholder="e.g., Alex"
+                isInvalid={!!errors.first_name}
+                errorMessage={errors.first_name as string}
+                classNames={{
+                  inputWrapper: 'bg-white dark:bg-neutral-900/60 border border-black/10 dark:border-white/15 shadow-sm',
+                  label: 'text-slate-700 dark:text-slate-200'
+                }}
               />
               <Input
                 isRequired
@@ -88,6 +93,12 @@ export default function AddEmployee({ onSuccess, onCancel }: { onSuccess: (emp: 
                 labelPlacement="outside"
                 name="last_name"
                 placeholder="e.g., Johnson"
+                isInvalid={!!errors.last_name}
+                errorMessage={errors.last_name as string}
+                classNames={{
+                  inputWrapper: 'bg-white dark:bg-neutral-900/60 border border-black/10 dark:border-white/15 shadow-sm',
+                  label: 'text-slate-700 dark:text-slate-200'
+                }}
               />
 
               <Input
@@ -100,7 +111,12 @@ export default function AddEmployee({ onSuccess, onCancel }: { onSuccess: (emp: 
                 labelPlacement="outside"
                 name="email"
                 placeholder="you@company.com"
-                description="We'll never share this."
+                isInvalid={!!errors.email}
+                errorMessage={errors.email as string}
+                classNames={{
+                  inputWrapper: 'bg-white dark:bg-neutral-900/60 border border-black/10 dark:border-white/15 shadow-sm',
+                  label: 'text-slate-700 dark:text-slate-200'
+                }}
               />
               <Input
                 variant="bordered"
@@ -110,6 +126,10 @@ export default function AddEmployee({ onSuccess, onCancel }: { onSuccess: (emp: 
                 labelPlacement="outside"
                 name="title"
                 placeholder="e.g., Product Manager"
+                classNames={{
+                  inputWrapper: 'bg-white dark:bg-neutral-900/60 border border-black/10 dark:border-white/15 shadow-sm',
+                  label: 'text-slate-700 dark:text-slate-200'
+                }}
               />
 
               <Select
@@ -123,6 +143,10 @@ export default function AddEmployee({ onSuccess, onCancel }: { onSuccess: (emp: 
                 selectedKeys={new Set([role])}
                 onSelectionChange={(keys) => setRole(Array.from(keys)[0] as string)}
                 placeholder="Select role"
+                classNames={{
+                  trigger: 'bg-white dark:bg-neutral-900/60 border border-black/10 dark:border-white/15 shadow-sm',
+                  label: 'text-slate-700 dark:text-slate-200'
+                }}
               >
                 <SelectItem key="employee">Employee</SelectItem>
                 <SelectItem key="manager">Manager</SelectItem>
@@ -141,6 +165,10 @@ export default function AddEmployee({ onSuccess, onCancel }: { onSuccess: (emp: 
                 name="start_date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
+                classNames={{
+                  inputWrapper: 'bg-white dark:bg-neutral-900/60 border border-black/10 dark:border-white/15 shadow-sm',
+                  label: 'text-slate-700 dark:text-slate-200'
+                }}
               />
 
               <Input
@@ -154,6 +182,10 @@ export default function AddEmployee({ onSuccess, onCancel }: { onSuccess: (emp: 
                 placeholder="e.g., 42"
                 min={0}
                 description="If the employee reports to a specific manager."
+                classNames={{
+                  inputWrapper: 'bg-white dark:bg-neutral-900/60 border border-black/10 dark:border-white/15 shadow-sm',
+                  label: 'text-slate-700 dark:text-slate-200'
+                }}
               />
 
               <div className="md:col-span-2">
@@ -169,7 +201,7 @@ export default function AddEmployee({ onSuccess, onCancel }: { onSuccess: (emp: 
               </div>
 
               {errors.form && (
-                <div className="md:col-span-2 text-danger text-sm">{errors.form}</div>
+                <div className="md:col-span-2 text-danger text-sm">{errors.form as string}</div>
               )}
 
               <div className="md:col-span-2 flex gap-3 justify-end pt-2">
@@ -181,7 +213,7 @@ export default function AddEmployee({ onSuccess, onCancel }: { onSuccess: (emp: 
                 </Button>
               </div>
             </div>
-          </Form>
+          </form>
         </CardBody>
       </Card>
     </div>
