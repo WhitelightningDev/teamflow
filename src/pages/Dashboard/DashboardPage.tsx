@@ -67,7 +67,7 @@ export default function DashboardPage() {
     return () => { cancelled = true }
   }, [])
 
-  const [pendingTasks, setPendingTasks] = useState([
+  const [pendingTasks, setPendingTasks] = useState<Array<{ id: string | number; text: string; action: string }>>([
     { id: 1, text: 'Loading pending tasks…', action: '' },
   ])
   useEffect(() => {
@@ -88,7 +88,7 @@ export default function DashboardPage() {
     return () => { cancelled = true }
   }, [])
 
-  const [recentActivity, setRecentActivity] = useState([
+  const [recentActivity, setRecentActivity] = useState<Array<{ id: string | number; name: string; event: string; time: string }>>([
     { id: 1, name: 'System', event: 'Loading…', time: '' },
   ])
   useEffect(() => {
@@ -100,8 +100,8 @@ export default function DashboardPage() {
           listLeaves({ page: 1, size: 3 }),
         ])
         const items = [
-          ...docs.items.map((d) => ({ id: d.id, name: 'Document', event: `uploaded ${d.filename}`, time: '' })),
-          ...leaves.items.map((l) => ({ id: l.id + 10000, name: 'Leave', event: `request ${l.leave_type} (#${l.id})`, time: '' })),
+          ...docs.items.map((d) => ({ id: `doc-${d.id}`, name: 'Document', event: `uploaded ${d.filename}`, time: '' })),
+          ...leaves.items.map((l) => ({ id: `leave-${l.id}`, name: 'Leave', event: `request ${l.leave_type} (#${l.id})`, time: '' })),
         ].slice(0, 3)
         if (!cancelled) setRecentActivity(items as any)
       } catch {
