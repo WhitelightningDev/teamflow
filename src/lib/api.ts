@@ -160,6 +160,7 @@ export type LeaveOut = {
   start_date: string | Date
   end_date: string | Date
   status: string
+  comment?: string
 }
 
 export type DocumentOut = {

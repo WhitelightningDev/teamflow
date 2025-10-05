@@ -30,7 +30,11 @@ export default function NotificationsBell() {
               <li key={n.id} className={`px-3 py-2 flex items-start gap-2 ${n.read ? 'opacity-70' : ''}`}>
                 <span className="mt-1 inline-block h-2 w-2 rounded-full bg-blue-600" />
                 <div className="flex-1">
-                  <div className="text-sm">{n.type === 'announcement' ? `Announcement: ${n.payload?.title}` : `Leave ${n.payload?.status || n.type}`}</div>
+                  <div className="text-sm">
+                    {n.type === 'announcement'
+                      ? `Announcement: ${n.payload?.title}`
+                      : `Leave ${n.payload?.status || n.type}${n.payload?.status === 'rejected' && n.payload?.comment ? ` — ${n.payload.comment}` : ''}`}
+                  </div>
                   <div className="text-xs text-slate-500">{new Date(n.created_at).toLocaleString()}</div>
                 </div>
               </li>
@@ -49,4 +53,3 @@ function BellIcon({ className = '' }: { className?: string }) {
     </svg>
   )
 }
-

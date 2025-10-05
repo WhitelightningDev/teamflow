@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
 import { Link } from 'react-router-dom'
-import { listEmployees, listLeaves, listDocuments, getUser } from '../../lib/api'
+import { listEmployees, listLeaves, listDocuments, getUser, updateLeaveStatus } from '../../lib/api'
 
 type SummaryCard = {
   key: string
@@ -58,6 +58,34 @@ export default function AdminDashboard() {
     return () => { cancelled = true }
   }, [])
 
+  async function refreshPending() {
+    const leaves = await listLeaves({ page: 1, size: 5, status: 'requested' })
+    setPending(leaves.items.map((l) => ({ id: l.id, text: `Leave #${l.id} (${l.leave_type})` })))
+  }
+
+  async function onApprove(id: string | number) {
+    try {
+      await updateLeaveStatus(id, 'approved')
+      await refreshPending()
+    } catch (e) {
+      alert('Failed to approve leave')
+    }
+  }
+
+  async function onReject(id: string | number) {
+    try {
+      const input = window.prompt('Please provide a reason for rejection:')
+      if (!input || !input.trim()) {
+        alert('A rejection reason is required.')
+        return
+      }
+      await updateLeaveStatus(id, 'rejected', input.trim())
+      await refreshPending()
+    } catch (e) {
+      alert('Failed to reject leave')
+    }
+  }
+
   return (
     <div className="space-y-6">
       <header className="flex items-center justify-between">
@@ -99,8 +127,8 @@ export default function AdminDashboard() {
               <li key={p.id} className="flex items-center justify-between text-sm rounded-lg border border-black/5 dark:border-white/10 px-3 py-2">
                 <span>{p.text}</span>
                 <div className="flex gap-2">
-                  <Link to="/leaves" className="rounded-md border border-black/10 dark:border-white/15 px-2 py-1 hover:bg-black/5 dark:hover:bg-white/10">Approve</Link>
-                  <Link to="/leaves" className="rounded-md border border-black/10 dark:border-white/15 px-2 py-1 hover:bg-black/5 dark:hover:bg-white/10">Reject</Link>
+                  <button onClick={() => onApprove(p.id)} className="rounded-md border border-black/10 dark:border-white/15 px-2 py-1 hover:bg-black/5 dark:hover:bg-white/10">Approve</button>
+                  <button onClick={() => onReject(p.id)} className="rounded-md border border-black/10 dark:border-white/15 px-2 py-1 hover:bg-black/5 dark:hover:bg-white/10">Reject</button>
                 </div>
               </li>
             ))}

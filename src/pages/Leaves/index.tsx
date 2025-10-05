@@ -4,7 +4,7 @@ import Breadcrumbs from '../../components/Breadcrumbs'
 import { listLeaves, updateLeaveStatus, createLeave, uploadDocument, getUser, type LeaveOut } from '../../lib/api'
 
 type Status = 'Requested' | 'Approved' | 'Rejected'
-type UILeave = { id: number | string; employee: string; type: string; startDate: string; endDate: string; status: Status }
+type UILeave = { id: number | string; employee: string; type: string; startDate: string; endDate: string; status: Status; comment?: string }
 
 export default function LeavesPage() {
   const role = (getUser() as any)?.role || 'employee'
@@ -46,7 +46,16 @@ export default function LeavesPage() {
   async function setStatus(id: number | string, status: Status) {
     try {
       const newStatus = status === 'Approved' ? 'approved' as const : 'rejected' as const
-      const updated = await updateLeaveStatus(id, newStatus)
+      let comment: string | undefined
+      if (newStatus === 'rejected') {
+        const input = window.prompt('Please provide a reason for rejection:')
+        if (!input || !input.trim()) {
+          alert('A rejection reason is required.')
+          return
+        }
+        comment = input.trim()
+      }
+      const updated = await updateLeaveStatus(id, newStatus, comment)
       setRequests((prev) => prev.map((r) => (r.id === id ? mapLeave(updated) : r)))
     } catch (e) {
       alert('Failed to update leave status')
@@ -93,6 +102,7 @@ export default function LeavesPage() {
                 <th className="px-4 py-3 font-medium">Start</th>
                 <th className="px-4 py-3 font-medium">End</th>
                 <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Reason (if rejected)</th>
                 <th className="px-4 py-3 font-medium text-right">Actions</th>
               </tr>
             </thead>
@@ -118,6 +128,7 @@ export default function LeavesPage() {
                         : 'bg-rose-50 text-rose-700 dark:bg-rose-600/20 dark:text-rose-300'
                     }`}>{r.status}</span>
                   </td>
+                  <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{r.status === 'Rejected' ? (r.comment || '—') : '—'}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 justify-end">
                       {canModerate && (
@@ -164,6 +175,9 @@ export default function LeavesPage() {
                 )}
                 <Link to="#" className="rounded-md bg-blue-600 text-white px-2.5 py-1 hover:bg-blue-700">Details</Link>
               </div>
+              {r.status === 'Rejected' && (
+                <div className="mt-2 text-xs text-slate-600 dark:text-slate-300">Reason: {r.comment || '—'}</div>
+              )}
             </div>
           ))}
         </div>
@@ -255,5 +269,6 @@ function mapLeave(l: LeaveOut): UILeave {
     startDate: start,
     endDate: end,
     status,
+    comment: l.comment,
   }
 }
