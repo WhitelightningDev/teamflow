@@ -10,7 +10,7 @@ export default function Home() {
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-3">
               <Link to="/" className="inline-flex items-center gap-2">
-                <Logo height={140} />
+                <Logo height={28} withText={false} />
               </Link>
             </div>
             <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
