@@ -6,10 +6,13 @@ import Breadcrumbs from '../../components/Breadcrumbs'
 import AddEmployee from './components/AddEmployee'
 import EmployeeView from './components/EmployeeView'
 import EmployeeEdit from './components/EmployeeEdit'
+import { getUser } from '../../lib/api'
 
 type UIEmployee = { id: string | number; name: string; role: string; status: 'Active' | 'Inactive' }
 
 export default function EmployeesPage() {
+  const role = (getUser() as any)?.role || 'employee'
+  const canInvite = ['admin','manager','hr','supervisor'].includes(role)
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -78,7 +81,9 @@ export default function EmployeesPage() {
             <p className="text-slate-600 dark:text-slate-300">Manage your team members and roles.</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={openAdd} className="rounded-lg bg-blue-600 text-white px-4 py-2 font-medium shadow-sm hover:bg-blue-700">Add Employee</button>
+            {canInvite && (
+              <button onClick={openAdd} className="rounded-lg bg-blue-600 text-white px-4 py-2 font-medium shadow-sm hover:bg-blue-700">Add Employee</button>
+            )}
           </div>
         </div>
 
@@ -126,10 +131,11 @@ export default function EmployeesPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 justify-end">
+                      {canInvite && (
                       <button
                         onClick={async () => { try { const r = await inviteEmployee(e.id); alert(`Invite sent to ${r.email}`) } catch (err: any) { alert(err?.message || 'Invite failed') } }}
                         className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10"
-                      >Invite</button>
+                      >Invite</button>) }
                       <button onClick={() => removeEmployee(e.id)} className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Delete</button>
                       <button
                         onClick={() => { setSelectedId(e.id); setDetailsOpen(true) }}
@@ -263,7 +269,7 @@ export default function EmployeesPage() {
                   <EmployeeEdit
                     employeeId={selectedId}
                     onCancel={() => setEditOpen(false)}
-                    onSaved={async () => { await refreshEmployees(); setEditOpen(false) }}
+                    onUpdated={async () => { await refreshEmployees(); setEditOpen(false) }}
                   />
                 )}
               </ModalBody>

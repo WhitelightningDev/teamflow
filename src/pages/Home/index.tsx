@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import Logo from '../../components/Logo'
 
 export default function Home() {
   return (
@@ -9,8 +10,7 @@ export default function Home() {
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-3">
               <Link to="/" className="inline-flex items-center gap-2">
-                <span className="inline-block h-8 w-8 rounded-lg bg-gradient-to-tr from-blue-600 via-indigo-500 to-fuchsia-500"></span>
-                <span className="text-lg font-semibold tracking-tight">Teamflow</span>
+                <Logo height={140} />
               </Link>
             </div>
             <nav className="hidden md:flex items-center gap-8 text-sm font-medium">

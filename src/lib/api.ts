@@ -26,6 +26,15 @@ export type LoginBody = {
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8000'
 
+// Brand assets (used by UI and can be shared with backend templates)
+export const BRAND = {
+  name: (import.meta as any).env?.VITE_BRAND_NAME || 'Teamflow',
+  // Use env overrides; fallback to src asset path so Vite bundles it.
+  logoUrl: (import.meta as any).env?.VITE_BRAND_LOGO_URL || '/src/assets/teamflow-logo.png',
+  logoMarkUrl: (import.meta as any).env?.VITE_BRAND_LOGO_MARK_URL || '',
+  emailLogoUrl: (import.meta as any).env?.VITE_BRAND_EMAIL_LOGO_URL || (import.meta as any).env?.VITE_BRAND_LOGO_URL || '/src/assets/teamflow-logo.png',
+}
+
 async function handleUnauthorized(res: Response, token: string | null) {
   if (res.status !== 401 || !token) return
   try {
@@ -151,6 +160,7 @@ export type LeaveOut = {
   start_date: string | Date
   end_date: string | Date
   status: string
+  comment?: string
 }
 
 export type DocumentOut = {
@@ -160,6 +170,9 @@ export type DocumentOut = {
   size?: number
   uploaded_by?: number
   uploaded_at?: string | Date
+  employee_id?: string | number | null
+  leave_id?: string | number | null
+  category?: string | null
 }
 
 export async function listEmployees(params?: { page?: number; size?: number; search?: string }): Promise<Paginated<EmployeeOut>> {
@@ -236,19 +249,22 @@ export async function deleteLeave(id: number | string): Promise<{ status: string
   })
 }
 
-export async function listDocuments(params?: { page?: number; size?: number; employee_id?: number }): Promise<Paginated<DocumentOut>> {
+export async function listDocuments(params?: { page?: number; size?: number; employee_id?: number; leave_id?: number | string }): Promise<Paginated<DocumentOut>> {
   const q = new URLSearchParams()
   if (params?.page) q.set('page', String(params.page))
   if (params?.size) q.set('size', String(params.size))
   if (params?.employee_id) q.set('employee_id', String(params.employee_id))
+  if (params?.leave_id) q.set('leave_id', String(params.leave_id))
   const qs = q.toString()
   return apiFetch<Paginated<DocumentOut>>(`/api/v1/documents${qs ? `?${qs}` : ''}`, { method: 'GET' })
 }
 
-export async function uploadDocument(file: File, employee_id?: number | string): Promise<DocumentOut> {
+export async function uploadDocument(file: File, opts?: { employee_id?: number | string; leave_id?: number | string; category?: string }): Promise<DocumentOut> {
   const form = new FormData()
   form.append('file', file)
-  if (employee_id != null) form.append('employee_id', String(employee_id))
+  if (opts?.employee_id != null) form.append('employee_id', String(opts.employee_id))
+  if (opts?.leave_id != null) form.append('leave_id', String(opts.leave_id))
+  if (opts?.category) form.append('category', opts.category)
   const token = getToken()
   const res = await fetch(`${API_BASE}/api/v1/documents`, {
     method: 'POST',
