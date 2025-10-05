@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Breadcrumbs from '../../components/Breadcrumbs'
-import { listLeaves, decideLeave, type LeaveOut } from '../../lib/api'
+import { listLeaves, updateLeaveStatus, createLeave, type LeaveOut } from '../../lib/api'
 
-type Status = 'Pending' | 'Approved' | 'Rejected'
+type Status = 'Requested' | 'Approved' | 'Rejected'
 type UILeave = { id: number | string; employee: string; type: string; startDate: string; endDate: string; status: Status }
 
 export default function LeavesPage() {
@@ -11,6 +11,9 @@ export default function LeavesPage() {
   const [requests, setRequests] = useState<UILeave[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [form, setForm] = useState({ type: 'annual', start: '', end: '', reason: '', half: false })
 
   useEffect(() => {
     let cancelled = false
@@ -18,7 +21,7 @@ export default function LeavesPage() {
       setLoading(true)
       setError(null)
       try {
-        const statusParam = tab === 'All' ? undefined : tab.toLowerCase()
+        const statusParam = tab === 'All' ? undefined : (tab === 'Requested' ? 'requested' : tab.toLowerCase())
         const res = await listLeaves({ page: 1, size: 50, status: statusParam })
         if (!cancelled) setRequests(res.items.map(mapLeave))
       } catch (e: any) {
@@ -38,8 +41,8 @@ export default function LeavesPage() {
 
   async function setStatus(id: number | string, status: Status) {
     try {
-      const action = status === 'Approved' ? 'approve' as const : 'reject' as const
-      const updated = await decideLeave(id, action)
+      const newStatus = status === 'Approved' ? 'approved' as const : 'rejected' as const
+      const updated = await updateLeaveStatus(id, newStatus)
       setRequests((prev) => prev.map((r) => (r.id === id ? mapLeave(updated) : r)))
     } catch (e) {
       alert('Failed to update leave status')
@@ -60,7 +63,7 @@ export default function LeavesPage() {
 
         {/* Tabs */}
         <div className="inline-flex rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-neutral-900/60 p-1 text-sm shadow-sm">
-          {(['All', 'Pending', 'Approved', 'Rejected'] as const).map((t) => (
+          {(['All', 'Requested', 'Approved', 'Rejected'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -69,6 +72,9 @@ export default function LeavesPage() {
               {t}
             </button>
           ))}
+        </div>
+        <div className="mt-3">
+          <button onClick={() => setCreateOpen(true)} className="rounded-lg bg-blue-600 text-white px-4 py-2 font-medium shadow-sm hover:bg-blue-700">Request Leave</button>
         </div>
 
         {/* Table (desktop) */}
@@ -101,7 +107,7 @@ export default function LeavesPage() {
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                       r.status === 'Approved'
                         ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-600/20 dark:text-emerald-300'
-                        : r.status === 'Pending'
+                        : r.status === 'Requested'
                         ? 'bg-amber-50 text-amber-700 dark:bg-amber-600/20 dark:text-amber-300'
                         : 'bg-rose-50 text-rose-700 dark:bg-rose-600/20 dark:text-rose-300'
                     }`}>{r.status}</span>
@@ -134,7 +140,7 @@ export default function LeavesPage() {
                 <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                   r.status === 'Approved'
                     ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-600/20 dark:text-emerald-300'
-                    : r.status === 'Pending'
+                    : r.status === 'Requested'
                     ? 'bg-amber-50 text-amber-700 dark:bg-amber-600/20 dark:text-amber-300'
                     : 'bg-rose-50 text-rose-700 dark:bg-rose-600/20 dark:text-rose-300'
                 }`}>{r.status}</span>
@@ -148,12 +154,69 @@ export default function LeavesPage() {
           ))}
         </div>
       </div>
+
+      {createOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10 p-6 shadow-xl">
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold">Request Leave</h2>
+            </div>
+            <form onSubmit={async (e) => {
+              e.preventDefault()
+              setCreating(true)
+              setError(null)
+              try {
+                const created = await createLeave({ leave_type: form.type, start_date: form.start, end_date: form.end, reason: form.reason || undefined, half_day: form.half })
+                setCreateOpen(false)
+                // reload list
+                const res = await listLeaves({ page: 1, size: 50 })
+                setRequests(res.items.map(mapLeave))
+              } catch (err: any) {
+                alert(err?.message || 'Failed to create leave')
+              } finally {
+                setCreating(false)
+              }
+            }} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium">Type</label>
+                <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-neutral-900/60 px-3 py-2">
+                  <option value="annual">Annual</option>
+                  <option value="sick">Sick</option>
+                  <option value="unpaid">Unpaid</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium">Start date</label>
+                  <input type="date" value={form.start} onChange={(e) => setForm({ ...form, start: e.target.value })} className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-neutral-900/60 px-3 py-2" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium">End date</label>
+                  <input type="date" value={form.end} onChange={(e) => setForm({ ...form, end: e.target.value })} className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-neutral-900/60 px-3 py-2" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Reason (optional)</label>
+                <input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder="Why are you taking leave?" className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-neutral-900/60 px-3 py-2" />
+              </div>
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={form.half} onChange={(e) => setForm({ ...form, half: e.target.checked })} className="h-4 w-4" />
+                Half day
+              </label>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setCreateOpen(false)} className="rounded-lg border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">Cancel</button>
+                <button type="submit" disabled={creating} className="rounded-lg bg-blue-600 text-white px-4 py-2 font-medium shadow-sm hover:bg-blue-700">{creating ? 'Submitting…' : 'Submit'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 function mapLeave(l: LeaveOut): UILeave {
-  const status: Status = (l.status === 'approved' ? 'Approved' : l.status === 'rejected' ? 'Rejected' : 'Pending')
+  const status: Status = (l.status === 'approved' ? 'Approved' : l.status === 'rejected' ? 'Rejected' : 'Requested')
   const start = typeof l.start_date === 'string' ? l.start_date : new Date(l.start_date).toISOString().slice(0,10)
   const end = typeof l.end_date === 'string' ? l.end_date : new Date(l.end_date).toISOString().slice(0,10)
   return {

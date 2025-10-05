@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 //
-import { listEmployees, deleteEmployee, type EmployeeOut } from '../../lib/api'
+import { listEmployees, deleteEmployee, inviteEmployee, type EmployeeOut } from '../../lib/api'
 import { Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/react'
 import Breadcrumbs from '../../components/Breadcrumbs'
 import AddEmployee from './components/AddEmployee'
-import EmployeeDetails from './components/EmployeeDetails'
+import EmployeeView from './components/EmployeeView'
+import EmployeeEdit from './components/EmployeeEdit'
 
 type UIEmployee = { id: string | number; name: string; role: string; status: 'Active' | 'Inactive' }
 
@@ -45,6 +46,7 @@ export default function EmployeesPage() {
   // Add Employee modal state
   const [addOpen, setAddOpen] = useState(false)
   const [detailsOpen, setDetailsOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<number | string | null>(null)
 
   function openAdd() {
@@ -124,7 +126,10 @@ export default function EmployeesPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 justify-end">
-                      <button className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Edit</button>
+                      <button
+                        onClick={async () => { try { const r = await inviteEmployee(e.id); alert(`Invite sent to ${r.email}`) } catch (err: any) { alert(err?.message || 'Invite failed') } }}
+                        className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10"
+                      >Invite</button>
                       <button onClick={() => removeEmployee(e.id)} className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Delete</button>
                       <button
                         onClick={() => { setSelectedId(e.id); setDetailsOpen(true) }}
@@ -132,6 +137,7 @@ export default function EmployeesPage() {
                       >
                         Details
                       </button>
+                      <button onClick={() => { setSelectedId(e.id); setEditOpen(true) }} className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Edit</button>
                     </div>
                   </td>
                 </tr>
@@ -159,7 +165,7 @@ export default function EmployeesPage() {
                 }`}>{e.status}</span>
               </div>
               <div className="mt-3 flex items-center gap-2">
-                <button className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Edit</button>
+                <button onClick={() => { setSelectedId(e.id); setEditOpen(true) }} className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Edit</button>
                 <button onClick={() => removeEmployee(e.id)} className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Delete</button>
                 <button
                   onClick={() => { setSelectedId(e.id); setDetailsOpen(true) }}
@@ -167,6 +173,7 @@ export default function EmployeesPage() {
                 >
                   Details
                 </button>
+                <button onClick={async () => { try { const r = await inviteEmployee(e.id); alert(`Invite sent to ${r.email}`) } catch (err: any) { alert(err?.message || 'Invite failed') } }} className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Invite</button>
               </div>
             </div>
           ))}
@@ -207,7 +214,7 @@ export default function EmployeesPage() {
         </ModalContent>
       </Modal>
 
-      {/* Employee Details Modal */}
+      {/* Employee Details Modal (read-only) */}
       <Modal
         isOpen={detailsOpen}
         onClose={() => setDetailsOpen(false)}
@@ -226,13 +233,37 @@ export default function EmployeesPage() {
               <ModalHeader className="flex flex-col gap-1">Employee Details</ModalHeader>
               <ModalBody>
                 {selectedId != null && (
-                  <EmployeeDetails
+                  <EmployeeView employeeId={selectedId} onClose={() => setDetailsOpen(false)} />
+                )}
+              </ModalBody>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
+      {/* Employee Edit Modal */}
+      <Modal
+        isOpen={editOpen}
+        onClose={() => setEditOpen(false)}
+        backdrop="blur"
+        size="lg"
+        radius="lg"
+        classNames={{
+          base: 'bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/10 shadow-2xl rounded-2xl',
+          header: 'px-6 pt-6 pb-2',
+          body: 'px-6 py-4',
+        }}
+      >
+        <ModalContent>
+          {() => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">Edit Employee</ModalHeader>
+              <ModalBody>
+                {selectedId != null && (
+                  <EmployeeEdit
                     employeeId={selectedId}
-                    onCancel={() => setDetailsOpen(false)}
-                    onUpdated={async () => {
-                      await refreshEmployees()
-                      setDetailsOpen(false)
-                    }}
+                    onCancel={() => setEditOpen(false)}
+                    onSaved={async () => { await refreshEmployees(); setEditOpen(false) }}
                   />
                 )}
               </ModalBody>

@@ -4,6 +4,7 @@ import Home from './pages/Home'
 import About from './pages/About'
 import NotFound from './pages/NotFound'
 import Login from './pages/Login'
+import AcceptInvite from './pages/AcceptInvite'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import EmployeesPage from './pages/Employees'
@@ -18,6 +19,7 @@ export default function AppRouter() {
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/accept-invite" element={<AcceptInvite />} />
         <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/employees" element={<EmployeesPage />} />

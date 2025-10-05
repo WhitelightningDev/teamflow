@@ -26,6 +26,20 @@ export type LoginBody = {
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8000'
 
+function handleUnauthorized(res: Response, token: string | null) {
+  if (res.status === 401 && token) {
+    // Session expired or invalid — clear and redirect to login
+    try { clearAuth() } catch {}
+    if (typeof window !== 'undefined') {
+      const reason = 'session=expired'
+      const loc = window.location
+      if (!loc.pathname.startsWith('/login')) {
+        window.location.assign(`/login?${reason}`)
+      }
+    }
+  }
+}
+
 async function apiFetch<T>(path: string, init: RequestInit): Promise<T> {
   const token = getToken()
   const res = await fetch(`${API_BASE}${path}`, {
@@ -36,6 +50,7 @@ async function apiFetch<T>(path: string, init: RequestInit): Promise<T> {
     },
     ...init,
   })
+  if (res.status === 401) handleUnauthorized(res, token)
   if (!res.ok) {
     let detail = 'Request failed'
     try {
@@ -175,6 +190,18 @@ export async function deleteEmployee(id: number | string): Promise<{ status: str
   })
 }
 
+export async function inviteEmployee(id: number | string): Promise<{ status: string; email: string; expires_at: string }> {
+  return apiFetch<{ status: string; email: string; expires_at: string }>(`/api/v1/employees/${id}/invite`, { method: 'POST' })
+}
+
+// Invite acceptance
+export async function acceptInvite(body: { token: string; password: string }): Promise<AuthResponse> {
+  return apiFetch<AuthResponse>('/api/v1/auth/accept-invite', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}
+
 export async function listLeaves(params?: { page?: number; size?: number; status?: string }): Promise<Paginated<LeaveOut>> {
   const q = new URLSearchParams()
   if (params?.page) q.set('page', String(params.page))
@@ -184,10 +211,17 @@ export async function listLeaves(params?: { page?: number; size?: number; status
   return apiFetch<Paginated<LeaveOut>>(`/api/v1/leaves${qs ? `?${qs}` : ''}`, { method: 'GET' })
 }
 
-export async function decideLeave(id: number | string, action: 'approve' | 'reject', comment?: string): Promise<LeaveOut> {
+export async function updateLeaveStatus(id: number | string, status: 'approved' | 'rejected' | 'cancelled', comment?: string): Promise<LeaveOut> {
   return apiFetch<LeaveOut>(`/api/v1/leaves/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ action, comment }),
+    body: JSON.stringify({ status, comment }),
+  })
+}
+
+export async function createLeave(body: { leave_type?: string; type_id?: string; start_date: string; end_date: string; reason?: string; half_day?: boolean }): Promise<LeaveOut> {
+  return apiFetch<LeaveOut>('/api/v1/leaves', {
+    method: 'POST',
+    body: JSON.stringify(body),
   })
 }
 
@@ -216,6 +250,7 @@ export async function uploadDocument(file: File, employee_id?: number | string):
     body: form,
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   })
+  if (res.status === 401) handleUnauthorized(res, token)
   if (!res.ok) {
     let detail = 'Upload failed'
     try { const body = await res.json(); detail = body.detail || body.message || detail } catch {}

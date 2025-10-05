@@ -1,23 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useEmployee } from '../../../hooks/useEmployee'
-import type { EmployeeIn } from '../../../lib/api'
 
-export default function EmployeeDetails({ employeeId, onUpdated, onCancel }: { employeeId: number | string; onUpdated: () => void; onCancel: () => void }) {
-  const { employee, loading, error, update, refresh } = useEmployee(employeeId)
-  const [email, setEmail] = useState('')
-  const [role, setRole] = useState('employee')
+export default function EmployeeDetails({ employeeId, onClose }: { employeeId: number | string; onClose: () => void }) {
+  const { employee, loading, error } = useEmployee(employeeId)
   const [startDate, setStartDate] = useState('')
-  const [isActive, setIsActive] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [formError, setFormError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!employee) return
-    setEmail(employee.email || '')
-    setRole(employee.role || 'employee')
     const d = employee.start_date ? String(employee.start_date).slice(0, 10) : ''
     setStartDate(d)
-    setIsActive(employee.is_active !== false)
   }, [employee])
 
   async function onSubmit(e: React.FormEvent) {
@@ -58,72 +49,38 @@ export default function EmployeeDetails({ employeeId, onUpdated, onCancel }: { e
     return <div className="text-rose-600 text-sm">{error}</div>
   }
 
+  const labelCls = 'text-sm font-medium text-slate-700 dark:text-slate-200'
+  const fieldCls = 'mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-neutral-900/60 px-3 py-2 text-slate-700 dark:text-slate-200'
+
   return (
-    <form className="w-full" onSubmit={onSubmit}>
-      {formError && <div className="text-rose-600 text-sm mb-3">{formError}</div>}
+    <div className="w-full">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        {/* Email */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">Email<span className="text-rose-600">*</span></label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@company.com"
-            className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-neutral-900/60 px-3 py-2 placeholder:text-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-            required
-          />
+          <label className={labelCls}>Name</label>
+          <div className={fieldCls}>
+            {[employee?.first_name, employee?.last_name].filter(Boolean).join(' ') || '—'}
+          </div>
         </div>
-
-        {/* Role */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">Role</label>
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-neutral-900/60 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-          >
-            <option value="employee">Employee</option>
-            <option value="manager">Manager</option>
-            <option value="admin">Admin</option>
-            <option value="hr">HR</option>
-            <option value="staff">Staff</option>
-          </select>
+          <label className={labelCls}>Email</label>
+          <div className={fieldCls}>{employee?.email || '—'}</div>
         </div>
-
-        {/* Start date */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">Start date</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-neutral-900/60 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-          />
+          <label className={labelCls}>Role</label>
+          <div className={fieldCls}>{employee?.role || 'employee'}</div>
         </div>
-
-        {/* Active */}
+        <div>
+          <label className={labelCls}>Start date</label>
+          <div className={fieldCls}>{startDate || '—'}</div>
+        </div>
         <div className="sm:col-span-2">
-          <label className="inline-flex items-center gap-2 select-none text-sm">
-            <input
-              type="checkbox"
-              checked={isActive}
-              onChange={(e) => setIsActive(e.target.checked)}
-              className="h-4 w-4 rounded border-black/20 text-blue-600 focus:ring-blue-600"
-            />
-            <span>Active</span>
-          </label>
+          <label className={labelCls}>Status</label>
+          <div className={fieldCls}>{employee?.is_active === false ? 'Inactive' : 'Active'}</div>
         </div>
       </div>
-
-      <div className="mt-6 flex justify-end gap-3">
-        <button type="button" onClick={onCancel} disabled={saving} className="rounded-lg border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">
-          Close
-        </button>
-        <button type="submit" disabled={saving} className="rounded-lg bg-blue-600 text-white px-4 py-2 font-medium shadow-sm hover:bg-blue-700 disabled:opacity-70">
-          {saving ? 'Saving…' : 'Save Changes'}
-        </button>
+      <div className="mt-6 flex justify-end">
+        <button type="button" onClick={onClose} className="rounded-lg border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">Close</button>
       </div>
-    </form>
+    </div>
   )
 }
