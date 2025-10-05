@@ -48,7 +48,7 @@ export default function DashboardPage() {
               <MenuIcon className="h-5 w-5" />
             </button>
             <Link to="/" className="hidden sm:inline-flex items-center gap-2">
-              <Logo height={140} />
+              <Logo height={28} />
             </Link>
             <span className="sm:ml-3 text-sm sm:text-base">Welcome, <span className="font-semibold">{userName}</span></span>
           </div>
