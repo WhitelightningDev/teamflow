@@ -7,7 +7,7 @@ export default function CompanyAttendance() {
 
   async function reload() {
     setLoading(true)
-    const base = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8000'
+    const base = (import.meta as any).env?.VITE_API_BASE || 'https://teamflow-backend-ivkm.onrender.com'
     const q = new URLSearchParams()
     if (employeeId) q.set('employee_id', employeeId)
     const res = await fetch(`${base}/api/v1/attendance?${q.toString()}`)

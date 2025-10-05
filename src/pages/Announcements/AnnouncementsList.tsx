@@ -11,7 +11,7 @@ export default function AnnouncementsList() {
       setLoading(true)
       setError(null)
       try {
-        const res = await fetch(`${(import.meta as any).env?.VITE_API_BASE || 'http://localhost:8000'}/api/v1/announcements?audience=me`)
+        const res = await fetch(`${(import.meta as any).env?.VITE_API_BASE || 'https://teamflow-backend-ivkm.onrender.com'}/api/v1/announcements?audience=me`)
         const data = await res.json()
         if (!cancelled) setItems(data.items || [])
       } catch (e: any) {

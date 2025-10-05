@@ -7,7 +7,7 @@ export default function EmployeeAttendance() {
   async function reload() {
     setLoading(true)
     try {
-      const base = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8000'
+      const base = (import.meta as any).env?.VITE_API_BASE || 'https://teamflow-backend-ivkm.onrender.com'
       const res = await fetch(`${base}/api/v1/attendance/me`)
       const data = await res.json()
       setList(data.items || [])
@@ -17,12 +17,12 @@ export default function EmployeeAttendance() {
   }
 
   async function clockIn() {
-    const base = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8000'
+    const base = (import.meta as any).env?.VITE_API_BASE || 'https://teamflow-backend-ivkm.onrender.com'
     await fetch(`${base}/api/v1/attendance/clock-in`, { method: 'POST' })
     reload()
   }
   async function clockOut() {
-    const base = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8000'
+    const base = (import.meta as any).env?.VITE_API_BASE || 'https://teamflow-backend-ivkm.onrender.com'
     await fetch(`${base}/api/v1/attendance/clock-out`, { method: 'POST' })
     reload()
   }
