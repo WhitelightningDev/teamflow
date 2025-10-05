@@ -1,6 +1,7 @@
 import type { FormEvent } from 'react'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import Logo from '../../components/Logo'
 import { login as apiLogin, saveAuth } from '../../lib/api'
 
 export default function Login() {
@@ -44,10 +45,9 @@ export default function Login() {
             <div className="mx-auto max-w-lg">
               <div className="mb-6">
                 <Link to="/" className="inline-flex items-center gap-2">
-                  <span className="inline-block h-9 w-9 rounded-lg bg-gradient-to-tr from-blue-600 via-indigo-500 to-fuchsia-500"></span>
-                  <span className="text-xl font-semibold tracking-tight">Teamflow</span>
+                  <Logo height={160} />
                 </Link>
-                <h1 className="mt-6 text-3xl font-bold tracking-tight">Log in to Teamflow</h1>
+                <h1 className=" text-3xl font-bold tracking-tight">Log in to Teamflow</h1>
                 <p className="mt-1 text-slate-600 dark:text-slate-300">Manage your employees, leaves, and documents.</p>
                 {sessionExpired && (
                   <p className="mt-3 text-sm rounded-md border border-amber-200 bg-amber-50 text-amber-700 px-3 py-2 dark:border-amber-400/30 dark:bg-amber-900/20 dark:text-amber-300">

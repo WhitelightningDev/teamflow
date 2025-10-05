@@ -1,6 +1,7 @@
 import type { FormEvent } from 'react'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import Logo from '../../components/Logo'
 import { register as apiRegister, saveAuth } from '../../lib/api'
 
 export default function Register() {
@@ -60,10 +61,9 @@ export default function Register() {
             <div className="mx-auto max-w-lg">
               <div className="mb-6">
                 <Link to="/" className="inline-flex items-center gap-2">
-                  <span className="inline-block h-9 w-9 rounded-lg bg-gradient-to-tr from-blue-600 via-indigo-500 to-fuchsia-500"></span>
-                  <span className="text-xl font-semibold tracking-tight">Teamflow</span>
+                  <Logo height={170} />
                 </Link>
-                <h1 className="mt-6 text-3xl font-bold tracking-tight">Create your account</h1>
+                <h1 className="text-3xl font-bold tracking-tight">Create your account</h1>
                 <p className="mt-1 text-slate-600 dark:text-slate-300">Start streamlining HR for your team today.</p>
               </div>
 

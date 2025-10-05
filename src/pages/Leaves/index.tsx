@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Breadcrumbs from '../../components/Breadcrumbs'
-import { listLeaves, updateLeaveStatus, createLeave, type LeaveOut } from '../../lib/api'
+import { listLeaves, updateLeaveStatus, createLeave, uploadDocument, getUser, type LeaveOut } from '../../lib/api'
 
 type Status = 'Requested' | 'Approved' | 'Rejected'
-type UILeave = { id: number | string; employee: string; type: string; startDate: string; endDate: string; status: Status }
+type UILeave = { id: number | string; employee: string; type: string; startDate: string; endDate: string; status: Status; comment?: string }
 
 export default function LeavesPage() {
+  const role = (getUser() as any)?.role || 'employee'
+  const canModerate = ['admin','manager','hr','supervisor'].includes(role)
+  const canApply = ['employee','staff'].includes(role)
   const [tab, setTab] = useState<'All' | Status>('All')
   const [requests, setRequests] = useState<UILeave[]>([])
   const [loading, setLoading] = useState(false)
@@ -14,6 +17,7 @@ export default function LeavesPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [form, setForm] = useState({ type: 'annual', start: '', end: '', reason: '', half: false })
+  const [createdLeaveId, setCreatedLeaveId] = useState<string | number | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -42,7 +46,16 @@ export default function LeavesPage() {
   async function setStatus(id: number | string, status: Status) {
     try {
       const newStatus = status === 'Approved' ? 'approved' as const : 'rejected' as const
-      const updated = await updateLeaveStatus(id, newStatus)
+      let comment: string | undefined
+      if (newStatus === 'rejected') {
+        const input = window.prompt('Please provide a reason for rejection:')
+        if (!input || !input.trim()) {
+          alert('A rejection reason is required.')
+          return
+        }
+        comment = input.trim()
+      }
+      const updated = await updateLeaveStatus(id, newStatus, comment)
       setRequests((prev) => prev.map((r) => (r.id === id ? mapLeave(updated) : r)))
     } catch (e) {
       alert('Failed to update leave status')
@@ -73,9 +86,11 @@ export default function LeavesPage() {
             </button>
           ))}
         </div>
-        <div className="mt-3">
-          <button onClick={() => setCreateOpen(true)} className="rounded-lg bg-blue-600 text-white px-4 py-2 font-medium shadow-sm hover:bg-blue-700">Request Leave</button>
-        </div>
+        {canApply && (
+          <div className="mt-3">
+            <button onClick={() => setCreateOpen(true)} className="rounded-lg bg-blue-600 text-white px-4 py-2 font-medium shadow-sm hover:bg-blue-700">Request Leave</button>
+          </div>
+        )}
 
         {/* Table (desktop) */}
         <div className="hidden md:block rounded-2xl overflow-hidden bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/10 shadow-sm">
@@ -87,6 +102,7 @@ export default function LeavesPage() {
                 <th className="px-4 py-3 font-medium">Start</th>
                 <th className="px-4 py-3 font-medium">End</th>
                 <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Reason (if rejected)</th>
                 <th className="px-4 py-3 font-medium text-right">Actions</th>
               </tr>
             </thead>
@@ -112,10 +128,15 @@ export default function LeavesPage() {
                         : 'bg-rose-50 text-rose-700 dark:bg-rose-600/20 dark:text-rose-300'
                     }`}>{r.status}</span>
                   </td>
+                  <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{r.status === 'Rejected' ? (r.comment || '—') : '—'}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 justify-end">
-                      <button onClick={() => setStatus(r.id, 'Approved')} className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Approve</button>
-                      <button onClick={() => setStatus(r.id, 'Rejected')} className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Reject</button>
+                      {canModerate && (
+                        <>
+                          <button onClick={() => setStatus(r.id, 'Approved')} className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Approve</button>
+                          <button onClick={() => setStatus(r.id, 'Rejected')} className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Reject</button>
+                        </>
+                      )}
                       <Link to="#" className="rounded-md bg-blue-600 text-white px-2.5 py-1 hover:bg-blue-700">Details</Link>
                     </div>
                   </td>
@@ -146,10 +167,17 @@ export default function LeavesPage() {
                 }`}>{r.status}</span>
               </div>
               <div className="mt-3 flex items-center gap-2">
-                <button onClick={() => setStatus(r.id, 'Approved')} className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Approve</button>
-                <button onClick={() => setStatus(r.id, 'Rejected')} className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Reject</button>
+                {canModerate && (
+                  <>
+                    <button onClick={() => setStatus(r.id, 'Approved')} className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Approve</button>
+                    <button onClick={() => setStatus(r.id, 'Rejected')} className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Reject</button>
+                  </>
+                )}
                 <Link to="#" className="rounded-md bg-blue-600 text-white px-2.5 py-1 hover:bg-blue-700">Details</Link>
               </div>
+              {r.status === 'Rejected' && (
+                <div className="mt-2 text-xs text-slate-600 dark:text-slate-300">Reason: {r.comment || '—'}</div>
+              )}
             </div>
           ))}
         </div>
@@ -167,7 +195,7 @@ export default function LeavesPage() {
               setError(null)
               try {
                 const created = await createLeave({ leave_type: form.type, start_date: form.start, end_date: form.end, reason: form.reason || undefined, half_day: form.half })
-                setCreateOpen(false)
+                setCreatedLeaveId(created.id)
                 // reload list
                 const res = await listLeaves({ page: 1, size: 50 })
                 setRequests(res.items.map(mapLeave))
@@ -204,9 +232,24 @@ export default function LeavesPage() {
                 Half day
               </label>
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setCreateOpen(false)} className="rounded-lg border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">Cancel</button>
-                <button type="submit" disabled={creating} className="rounded-lg bg-blue-600 text-white px-4 py-2 font-medium shadow-sm hover:bg-blue-700">{creating ? 'Submitting…' : 'Submit'}</button>
+                <button type="button" onClick={() => { setCreateOpen(false); setCreatedLeaveId(null) }} className="rounded-lg border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">Close</button>
+                <button type="submit" disabled={creating} className="rounded-lg bg-blue-600 text-white px-4 py-2 font-medium shadow-sm hover:bg-blue-700">{creating ? 'Submitting…' : (createdLeaveId ? 'Submitted' : 'Submit')}</button>
               </div>
+              {createdLeaveId && (
+                <div className="pt-3 border-t border-black/10 dark:border-white/10">
+                  <p className="text-sm mb-2">Attach supporting document (optional):</p>
+                  <input type="file" onChange={async (e) => {
+                    const f = e.target.files?.[0]
+                    if (!f) return
+                    try {
+                      await uploadDocument(f, { leave_id: createdLeaveId, category: 'leave' })
+                      alert('Document uploaded')
+                    } catch (err: any) {
+                      alert(err?.message || 'Upload failed')
+                    }
+                  }} />
+                </div>
+              )}
             </form>
           </div>
         </div>
@@ -226,5 +269,6 @@ function mapLeave(l: LeaveOut): UILeave {
     startDate: start,
     endDate: end,
     status,
+    comment: l.comment,
   }
 }
