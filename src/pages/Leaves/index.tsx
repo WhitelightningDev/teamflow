@@ -184,8 +184,8 @@ export default function LeavesPage() {
       </div>
 
       {createOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10 p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 sm:p-0">
+          <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10 p-4 sm:p-6 shadow-xl max-h-[85vh] overflow-y-auto">
             <div className="mb-4">
               <h2 className="text-lg font-semibold">Request Leave</h2>
             </div>
