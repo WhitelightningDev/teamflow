@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { getUser, listEmployees, listLeaves, listDocuments } from '../../lib/api'
+import { getUser, listEmployees, listLeaves, listDocuments, clearAuth } from '../../lib/api'
 import SummarySkeleton from '../../components/SummarySkeleton'
 
 type SummaryCard = {
@@ -21,6 +21,11 @@ export default function DashboardPage() {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
+  function onLogout() {
+    try { clearAuth() } catch {}
+    setUserMenuOpen(false)
+    navigate('/login')
+  }
 
   // Redirect legacy hash anchors to proper routes
   useEffect(() => {
@@ -150,7 +155,7 @@ export default function DashboardPage() {
                 <Link to="#" className="block px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10">Profile</Link>
                 <Link to="#" className="block px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10">Settings</Link>
                 <div className="my-1 h-px bg-black/5 dark:bg-white/10" />
-                <button className="w-full text-left px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10 text-rose-600">Logout</button>
+                <button onClick={onLogout} className="w-full text-left px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10 text-rose-600">Logout</button>
               </div>
             )}
           </div>
