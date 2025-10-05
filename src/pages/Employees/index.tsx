@@ -269,7 +269,7 @@ export default function EmployeesPage() {
                   <EmployeeEdit
                     employeeId={selectedId}
                     onCancel={() => setEditOpen(false)}
-                    onSaved={async () => { await refreshEmployees(); setEditOpen(false) }}
+                    onUpdated={async () => { await refreshEmployees(); setEditOpen(false) }}
                   />
                 )}
               </ModalBody>

@@ -26,6 +26,15 @@ export type LoginBody = {
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8000'
 
+// Brand assets (used by UI and can be shared with backend templates)
+export const BRAND = {
+  name: (import.meta as any).env?.VITE_BRAND_NAME || 'Teamflow',
+  // Use env overrides; fallback to src asset path so Vite bundles it.
+  logoUrl: (import.meta as any).env?.VITE_BRAND_LOGO_URL || '/src/assets/teamflow-logo.png',
+  logoMarkUrl: (import.meta as any).env?.VITE_BRAND_LOGO_MARK_URL || '',
+  emailLogoUrl: (import.meta as any).env?.VITE_BRAND_EMAIL_LOGO_URL || (import.meta as any).env?.VITE_BRAND_LOGO_URL || '/src/assets/teamflow-logo.png',
+}
+
 async function handleUnauthorized(res: Response, token: string | null) {
   if (res.status !== 401 || !token) return
   try {

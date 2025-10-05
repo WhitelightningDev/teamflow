@@ -7,6 +7,10 @@ import Login from './pages/Login'
 import AcceptInvite from './pages/AcceptInvite'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
+import AttendancePage from './pages/Attendance'
+import AnnouncementsList from './pages/Announcements/AnnouncementsList'
+import AnnouncementsCreate from './pages/Announcements/AnnouncementsCreate'
+import RequireRole from './lib/auth/RequireRole'
 import EmployeesPage from './pages/Employees'
 import LeavesPage from './pages/Leaves'
 import DocumentsPage from './pages/Documents'
@@ -22,9 +26,13 @@ export default function AppRouter() {
         <Route path="/accept-invite" element={<AcceptInvite />} />
         <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/employees" element={<EmployeesPage />} />
+        <Route path="/employees" element={<RequireRole allow={["admin","manager","hr"]}><EmployeesPage /></RequireRole>} />
         <Route path="/leaves" element={<LeavesPage />} />
+        <Route path="/attendance" element={<AttendancePage />} />
+        <Route path="/announcements" element={<AnnouncementsList />} />
+        <Route path="/announcements/new" element={<RequireRole allow={["admin","manager","hr"]}><AnnouncementsCreate /></RequireRole>} />
         <Route path="/documents" element={<DocumentsPage />} />
+        <Route path="/not-authorized" element={<div className='p-6 text-center text-slate-600'>Not authorized</div>} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

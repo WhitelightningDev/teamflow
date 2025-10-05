@@ -1,21 +1,17 @@
 import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { getUser, listEmployees, listLeaves, listDocuments, clearAuth } from '../../lib/api'
-import SummarySkeleton from '../../components/SummarySkeleton'
-
-type SummaryCard = {
-  key: string
-  label: string
-  value: string
-  sublabel: string
-  color: string
-  Icon: (props: { className?: string }) => JSX.Element
-}
+import Logo from '../../components/Logo'
+import { getUser, clearAuth } from '../../lib/api'
+import NotificationsBell from '../../components/NotificationsBell'
+import AdminDashboard from './AdminDashboard'
+import EmployeeDashboard from './EmployeeDashboard'
 
 export default function DashboardPage() {
   const storedUser = getUser()
   const userName = storedUser ? `${storedUser.first_name}` : 'Guest'
+  const role = ((storedUser as any)?.role) || 'employee'
+  const isAdminLikeRole = ['admin','manager','hr'].includes(role)
 
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
@@ -36,90 +32,7 @@ export default function DashboardPage() {
     else if (h === '#settings') navigate('/settings', { replace: true })
   }, [location.hash, navigate])
 
-  const [summaryLoading, setSummaryLoading] = useState(true)
-  const [summary, setSummary] = useState<SummaryCard[]>([
-    { key: 'employees', label: 'Employees', value: '—', sublabel: 'Total team members', color: 'text-blue-600', Icon: UsersIcon },
-    { key: 'pendingLeave', label: 'Pending Leave', value: '—', sublabel: 'Awaiting approval', color: 'text-emerald-600', Icon: CalendarIcon },
-    { key: 'docs', label: 'Documents', value: '—', sublabel: 'Needing review', color: 'text-violet-600', Icon: FileIcon },
-    { key: 'onLeave', label: 'On Leave Today', value: '—', sublabel: 'Team members out', color: 'text-amber-600', Icon: SunIcon },
-  ])
-
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      try {
-        const [emps, pending, docs] = await Promise.all([
-          listEmployees({ page: 1, size: 1 }),
-          listLeaves({ page: 1, size: 1, status: 'pending' }),
-          listDocuments({ page: 1, size: 1 }),
-        ])
-
-        // For on-leave-today we would need approved leaves with date window; use 0 for now (or compute from data when available)
-        const onLeaveToday = 0
-
-        if (!cancelled) {
-          setSummary((prev) => prev.map((card) => {
-            if (card.key === 'employees') return { ...card, value: String(emps.total) }
-            if (card.key === 'pendingLeave') return { ...card, value: String(pending.total) }
-            if (card.key === 'docs') return { ...card, value: String(docs.total) }
-            if (card.key === 'onLeave') return { ...card, value: String(onLeaveToday) }
-            return card
-          }))
-          setSummaryLoading(false)
-        }
-      } catch (e) {
-        // Silently ignore for dashboard; could add a toast
-        if (!cancelled) setSummaryLoading(false)
-      }
-    }
-    load()
-    return () => { cancelled = true }
-  }, [])
-
-  const [pendingTasks, setPendingTasks] = useState<Array<{ id: string | number; text: string; action: string }>>([
-    { id: 1, text: 'Loading pending tasks…', action: '' },
-  ])
-  useEffect(() => {
-    let cancelled = false
-    async function loadPending() {
-      try {
-        const { items } = await listLeaves({ page: 1, size: 5, status: 'pending' })
-        if (!cancelled) {
-          setPendingTasks(
-            items.map((l) => ({ id: l.id, text: `Approve ${l.leave_type} leave request #${l.id}`, action: 'Approve' }))
-          )
-        }
-      } catch {
-        if (!cancelled) setPendingTasks([])
-      }
-    }
-    loadPending()
-    return () => { cancelled = true }
-  }, [])
-
-  const [recentActivity, setRecentActivity] = useState<Array<{ id: string | number; name: string; event: string; time: string }>>([
-    { id: 1, name: 'System', event: 'Loading…', time: '' },
-  ])
-  useEffect(() => {
-    let cancelled = false
-    async function loadRecent() {
-      try {
-        const [docs, leaves] = await Promise.all([
-          listDocuments({ page: 1, size: 3 }),
-          listLeaves({ page: 1, size: 3 }),
-        ])
-        const items = [
-          ...docs.items.map((d) => ({ id: `doc-${d.id}`, name: 'Document', event: `uploaded ${d.filename}`, time: '' })),
-          ...leaves.items.map((l) => ({ id: `leave-${l.id}`, name: 'Leave', event: `request ${l.leave_type} (#${l.id})`, time: '' })),
-        ].slice(0, 3)
-        if (!cancelled) setRecentActivity(items as any)
-      } catch {
-        if (!cancelled) setRecentActivity([])
-      }
-    }
-    loadRecent()
-    return () => { cancelled = true }
-  }, [])
+  // Role-specific dashboards are rendered below; removing legacy summary code
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-neutral-900 text-slate-900 dark:text-slate-100">
@@ -135,12 +48,12 @@ export default function DashboardPage() {
               <MenuIcon className="h-5 w-5" />
             </button>
             <Link to="/" className="hidden sm:inline-flex items-center gap-2">
-              <span className="inline-block h-8 w-8 rounded-lg bg-gradient-to-tr from-blue-600 via-indigo-500 to-fuchsia-500"></span>
-              <span className="text-base font-semibold tracking-tight">Teamflow</span>
+              <Logo height={140} />
             </Link>
             <span className="sm:ml-3 text-sm sm:text-base">Welcome, <span className="font-semibold">{userName}</span></span>
           </div>
-          <div className="relative">
+          <div className="relative flex items-center gap-2">
+            <NotificationsBell />
             <button
               className="inline-flex items-center gap-2 rounded-lg px-2.5 py-1.5 hover:bg-black/5 dark:hover:bg-white/10"
               onClick={() => setUserMenuOpen((v) => !v)}
@@ -175,8 +88,7 @@ export default function DashboardPage() {
             <div className="absolute inset-y-0 left-0 w-72 bg-white dark:bg-neutral-900 border-r border-black/5 dark:border-white/10 p-4">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <span className="inline-block h-8 w-8 rounded-lg bg-gradient-to-tr from-blue-600 via-indigo-500 to-fuchsia-500"></span>
-                  <span className="text-base font-semibold tracking-tight">Teamflow</span>
+                  <Logo height={28} />
                 </div>
                 <button className="h-8 w-8 rounded-md hover:bg-black/5 dark:hover:bg-white/10 inline-flex items-center justify-center" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar">
                   <XMarkIcon className="h-5 w-5" />
@@ -189,71 +101,7 @@ export default function DashboardPage() {
 
         {/* Main content */}
         <main className="lg:col-span-9 space-y-6">
-          {/* Summary cards */}
-          <section>
-            {summaryLoading ? (
-              <SummarySkeleton items={4} />
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                {summary.map(({ key, label, value, sublabel, color, Icon }) => (
-                  <div key={key} className="rounded-2xl bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/10 shadow-sm p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`h-10 w-10 rounded-lg bg-black/5 dark:bg-white/10 flex items-center justify-center ${color}`}>
-                          <Icon className="h-5 w-5" />
-                        </div>
-                        <span className="font-medium">{label}</span>
-                      </div>
-                    </div>
-                    <p className="mt-3 text-3xl font-bold">{value}</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-300">{sublabel}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* Pending Tasks + Recent Activity */}
-          <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            {/* Pending Tasks */}
-            <div className="xl:col-span-2 rounded-2xl bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/10 shadow-sm">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-black/5 dark:border-white/10">
-                <h2 className="text-lg font-semibold">Pending Tasks</h2>
-                <Link to="#" className="text-sm text-blue-600 hover:underline">View all</Link>
-              </div>
-              <ul className="divide-y divide-black/5 dark:divide-white/10">
-                {pendingTasks.map((t) => (
-                  <li key={t.id} className="flex items-center gap-3 px-4 py-3">
-                    <CircleDotIcon className="h-4 w-4 text-amber-500" />
-                    <span className="flex-1 text-sm">{t.text}</span>
-                    <button className="rounded-md border border-black/10 dark:border-white/15 px-3 py-1.5 text-sm hover:bg-black/5 dark:hover:bg-white/10">
-                      {t.action}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Recent Activity */}
-            <div className="rounded-2xl bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/10 shadow-sm">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-black/5 dark:border-white/10">
-                <h2 className="text-lg font-semibold">Recent Activity</h2>
-                <Link to="#" className="text-sm text-blue-600 hover:underline">View all</Link>
-              </div>
-              <ul className="divide-y divide-black/5 dark:divide-white/10">
-                {recentActivity.map((a) => (
-                  <li key={a.id} className="flex items-center gap-3 px-4 py-3">
-                    <Avatar name={a.name} size="sm" />
-                    <div className="flex-1 text-sm">
-                      <span className="font-medium">{a.name}</span> {a.event}
-                      <div className="text-xs text-slate-500 dark:text-slate-400">{a.time}</div>
-                    </div>
-                    <ArrowRightIcon className="h-4 w-4 text-slate-400" />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </section>
+          {isAdminLikeRole ? <AdminDashboard /> : <EmployeeDashboard />}
         </main>
       </div>
     </div>
@@ -262,6 +110,7 @@ export default function DashboardPage() {
 
 function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const { pathname } = useLocation()
+  const role = ((getUser() as any)?.role) || 'employee'
   const NavItem = ({ to, label, Icon, active = false }: { to: string; label: string; Icon: (p: { className?: string }) => JSX.Element; active?: boolean }) => (
     <Link
       to={to}
@@ -278,13 +127,26 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
     </Link>
   )
 
+  const isAdminLikeRole = ['admin','manager','hr'].includes(role)
+  const items = isAdminLikeRole
+    ? [
+        { to: '/dashboard', label: 'Dashboard', Icon: GridIcon },
+        { to: '/employees', label: 'Employees', Icon: UsersIcon },
+        { to: '/leaves', label: 'Leaves', Icon: CalendarIcon },
+        { to: '/documents', label: 'Documents', Icon: FileIcon },
+        { to: '/settings', label: 'Settings', Icon: SettingsIcon },
+      ]
+    : [
+        { to: '/dashboard', label: 'Dashboard', Icon: GridIcon },
+        { to: '/leaves', label: 'My Leaves', Icon: CalendarIcon },
+        { to: '/documents', label: 'My Documents', Icon: FileIcon },
+        { to: '/settings', label: 'Profile', Icon: SettingsIcon },
+      ]
   return (
     <nav className="rounded-2xl border border-black/5 dark:border-white/10 bg-white/80 dark:bg-neutral-900/60 backdrop-blur p-3 sm:p-4 space-y-1">
-      <NavItem to="/dashboard" label="Dashboard" Icon={GridIcon} active={pathname === '/dashboard'} />
-      <NavItem to="/employees" label="Employees" Icon={UsersIcon} active={pathname === '/employees'} />
-      <NavItem to="/leaves" label="Leaves" Icon={CalendarIcon} active={pathname === '/leaves'} />
-      <NavItem to="/documents" label="Documents" Icon={FileIcon} active={pathname === '/documents'} />
-      <NavItem to="/settings" label="Settings" Icon={SettingsIcon} active={pathname === '/settings'} />
+      {items.map(({ to, label, Icon }) => (
+        <NavItem key={to} to={to} label={label} Icon={Icon} active={pathname === to} />
+      ))}
     </nav>
   )
 }
@@ -352,27 +214,8 @@ function FileIcon({ className = '' }: { className?: string }) {
     </svg>
   )
 }
-function SunIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <path d="M12 7a5 5 0 1 1-5 5 5 5 0 0 1 5-5m0-5h1v3h-1zm0 17h1v3h-1zM1 11h3v1H1zm19 0h3v1h-3zM4.22 4.22l.71-.71 2.12 2.12-.71.71zM16.95 16.95l.71-.71 2.12 2.12-.71.71zM4.22 19.78l2.12-2.12.71.71-2.12 2.12zM16.95 7.05l2.12-2.12.71.71-2.12 2.12z" />
-    </svg>
-  )
-}
-function CircleDotIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2m0 5a5 5 0 1 1-5 5 5 5 0 0 1 5-5" />
-    </svg>
-  )
-}
-function ArrowRightIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <path d="M10 17l5-5-5-5v10z" />
-    </svg>
-  )
-}
+// Removed legacy summary-only icons (Sun, CircleDot) as part of cleanup
+// Removed ArrowRightIcon (unused after summary cleanup)
 function SettingsIcon({ className = '' }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>

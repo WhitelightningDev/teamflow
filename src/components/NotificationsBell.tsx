@@ -1,0 +1,52 @@
+import { useState } from 'react'
+import { useNotifications } from '../hooks/useNotifications'
+
+export default function NotificationsBell() {
+  const { data, isLoading, markRead } = useNotifications()
+  const [open, setOpen] = useState(false)
+  const items = data?.items || []
+  const unread = items.filter((n: any) => !n.read).length
+
+  async function markAll() {
+    await Promise.all(items.filter((n:any)=>!n.read).map((n:any)=> markRead(n.id)))
+  }
+
+  return (
+    <div className="relative">
+      <button onClick={()=>setOpen(v=>!v)} className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 hover:bg-black/5 dark:hover:bg-white/10" aria-haspopup="menu">
+        <BellIcon className="h-5 w-5 text-slate-500" />
+        {unread > 0 && <span className="inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-rose-600 text-white text-xs">{unread}</span>}
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-2 w-80 rounded-lg border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 shadow-lg py-1 text-sm">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-black/5 dark:border-white/10">
+            <span className="font-medium">Notifications</span>
+            <button onClick={markAll} className="text-xs text-blue-600 hover:underline">Mark all read</button>
+          </div>
+          <ul className="max-h-72 overflow-auto">
+            {isLoading && <li className="px-3 py-2 text-slate-500">Loading…</li>}
+            {(!isLoading && items.length === 0) && <li className="px-3 py-2 text-slate-500">No notifications.</li>}
+            {items.map((n:any) => (
+              <li key={n.id} className={`px-3 py-2 flex items-start gap-2 ${n.read ? 'opacity-70' : ''}`}>
+                <span className="mt-1 inline-block h-2 w-2 rounded-full bg-blue-600" />
+                <div className="flex-1">
+                  <div className="text-sm">{n.type === 'announcement' ? `Announcement: ${n.payload?.title}` : `Leave ${n.payload?.status || n.type}`}</div>
+                  <div className="text-xs text-slate-500">{new Date(n.created_at).toLocaleString()}</div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function BellIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
+      <path d="M12 22a2 2 0 0 0 2-2H10a2 2 0 0 0 2 2m6-6v-5a6 6 0 0 0-5-5.91V4a1 1 0 0 0-2 0v1.09A6 6 0 0 0 6 11v5l-2 2v1h16v-1z" />
+    </svg>
+  )
+}
+
