@@ -1,24 +1,50 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNotifications } from '../hooks/useNotifications'
 
 export default function NotificationsBell() {
-  const { data, isLoading, markRead } = useNotifications()
+  const { data, isLoading, markRead, refetch } = useNotifications()
   const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement | null>(null)
   const items = data?.items || []
   const unread = items.filter((n: any) => !n.read).length
 
   async function markAll() {
-    await Promise.all(items.filter((n:any)=>!n.read).map((n:any)=> markRead(n.id)))
+    const unreadItems = items.filter((n:any)=>!n.read)
+    if (unreadItems.length === 0) return
+    await Promise.all(unreadItems.map((n:any)=> markRead(n.id)))
+    await refetch()
   }
 
+  // Close on outside click or Escape
+  useEffect(() => {
+    if (!open) return
+    function onDocClick(e: MouseEvent | TouchEvent) {
+      const el = ref.current
+      if (!el) return
+      const target = e.target as Node
+      if (el && !el.contains(target)) {
+        setOpen(false)
+      }
+    }
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', onDocClick)
+    document.addEventListener('touchstart', onDocClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDocClick)
+      document.removeEventListener('touchstart', onDocClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
   return (
-    <div className="relative">
-      <button onClick={()=>setOpen(v=>!v)} className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 hover:bg-black/5 dark:hover:bg-white/10" aria-haspopup="menu">
+    <div className="relative" ref={ref}>
+      <button onClick={()=>setOpen(v=>!v)} className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 hover:bg-black/5 dark:hover:bg-white/10" aria-haspopup="menu" aria-expanded={open} aria-controls="notifications-popover">
         <BellIcon className="h-5 w-5 text-slate-500" />
         {unread > 0 && <span className="inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-rose-600 text-white text-xs">{unread}</span>}
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 w-80 rounded-lg border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 shadow-lg py-1 text-sm">
+        <div id="notifications-popover" role="menu" className="absolute right-0 mt-2 w-80 rounded-lg border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 shadow-lg py-1 text-sm">
           <div className="flex items-center justify-between px-3 py-2 border-b border-black/5 dark:border-white/10">
             <span className="font-medium">Notifications</span>
             <button onClick={markAll} className="text-xs text-blue-600 hover:underline">Mark all read</button>
