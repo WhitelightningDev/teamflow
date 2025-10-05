@@ -1,6 +1,7 @@
 import type { FormEvent } from 'react'
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { register as apiRegister, saveAuth } from '../../lib/api'
 
 export default function Register() {
   const [firstName, setFirstName] = useState('')
@@ -11,6 +12,9 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false)
   const [agree, setAgree] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const navigate = useNavigate()
 
   const emailValid = useMemo(() => /.+@.+\..+/.test(email), [email])
   const passwordStrength = useMemo(() => assessPassword(password), [password])
@@ -24,12 +28,27 @@ export default function Register() {
     passwordValid &&
     agree
 
-  function onSubmit(e: FormEvent) {
+  async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setSubmitted(true)
     if (!allValid) return
-    // Replace with real registration flow
-    alert(`Welcome to Teamflow, ${firstName}!`)
+    setError(null)
+    setLoading(true)
+    try {
+      const auth = await apiRegister({
+        first_name: firstName,
+        last_name: lastName,
+        email,
+        password,
+        company_name: company,
+      })
+      saveAuth(auth)
+      navigate('/dashboard')
+    } catch (err: any) {
+      setError(err?.message || 'Registration failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -166,13 +185,18 @@ export default function Register() {
                   )}
                 </div>
 
+                {error && (
+                  <div className="sm:col-span-2">
+                    <p className="text-sm text-rose-600">{error}</p>
+                  </div>
+                )}
                 <div className="sm:col-span-2">
                   <button
                     type="submit"
-                    disabled={!allValid && submitted}
+                    disabled={loading || (!allValid && submitted)}
                     className="w-full rounded-lg bg-blue-600 text-white py-2.5 font-medium shadow-sm hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed"
                   >
-                    Sign Up
+                    {loading ? 'Creating account…' : 'Sign Up'}
                   </button>
                 </div>
 
