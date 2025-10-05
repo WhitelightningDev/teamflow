@@ -26,17 +26,22 @@ export type LoginBody = {
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8000'
 
-function handleUnauthorized(res: Response, token: string | null) {
-  if (res.status === 401 && token) {
-    // Session expired or invalid — clear and redirect to login
-    try { clearAuth() } catch {}
-    if (typeof window !== 'undefined') {
-      const reason = 'session=expired'
-      const loc = window.location
-      if (!loc.pathname.startsWith('/login')) {
-        window.location.assign(`/login?${reason}`)
+async function handleUnauthorized(res: Response, token: string | null) {
+  if (res.status !== 401 || !token) return
+  try {
+    const body = await res.clone().json().catch(() => ({} as any))
+    const detail = (body && (body.detail || body.message)) as string | undefined
+    if (detail && detail.toLowerCase().includes('token expired')) {
+      try { clearAuth() } catch {}
+      if (typeof window !== 'undefined') {
+        const loc = window.location
+        if (!loc.pathname.startsWith('/login')) {
+          window.location.assign('/login?session=expired')
+        }
       }
     }
+  } catch {
+    // ignore
   }
 }
 
@@ -50,7 +55,7 @@ async function apiFetch<T>(path: string, init: RequestInit): Promise<T> {
     },
     ...init,
   })
-  if (res.status === 401) handleUnauthorized(res, token)
+  if (res.status === 401) await handleUnauthorized(res, token)
   if (!res.ok) {
     let detail = 'Request failed'
     try {
@@ -250,7 +255,7 @@ export async function uploadDocument(file: File, employee_id?: number | string):
     body: form,
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   })
-  if (res.status === 401) handleUnauthorized(res, token)
+  if (res.status === 401) await handleUnauthorized(res, token)
   if (!res.ok) {
     let detail = 'Upload failed'
     try { const body = await res.json(); detail = body.detail || body.message || detail } catch {}

@@ -1,13 +1,15 @@
 import type { FormEvent } from 'react'
 import { useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { login as apiLogin, saveAuth } from '../../lib/api'
 
 export default function Login() {
+  const [params] = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(true)
   const [submitted, setSubmitted] = useState(false)
+  const sessionExpired = params.get('session') === 'expired'
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
@@ -47,6 +49,11 @@ export default function Login() {
                 </Link>
                 <h1 className="mt-6 text-3xl font-bold tracking-tight">Log in to Teamflow</h1>
                 <p className="mt-1 text-slate-600 dark:text-slate-300">Manage your employees, leaves, and documents.</p>
+                {sessionExpired && (
+                  <p className="mt-3 text-sm rounded-md border border-amber-200 bg-amber-50 text-amber-700 px-3 py-2 dark:border-amber-400/30 dark:bg-amber-900/20 dark:text-amber-300">
+                    Your session expired. Please sign in again.
+                  </p>
+                )}
               </div>
 
               {/* OAuth */}
