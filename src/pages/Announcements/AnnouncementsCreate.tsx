@@ -15,7 +15,7 @@ export default function AnnouncementsCreate() {
     if (!title.trim()) return setError('Title is required')
     setLoading(true)
     try {
-      const base = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8000'
+      const base = (import.meta as any).env?.VITE_API_BASE || 'https://teamflow-backend-ivkm.onrender.com'
       const res = await fetch(`${base}/api/v1/announcements`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -64,4 +64,3 @@ export default function AnnouncementsCreate() {
     </div>
   )
 }
-

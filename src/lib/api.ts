@@ -24,7 +24,7 @@ export type LoginBody = {
   password: string
 }
 
-const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8000'
+const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'https://teamflow-backend-ivkm.onrender.com'
 
 // Brand assets (used by UI and can be shared with backend templates)
 export const BRAND = {
