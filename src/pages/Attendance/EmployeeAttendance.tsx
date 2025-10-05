@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
-import { getUser } from '../../lib/api'
 
 export default function EmployeeAttendance() {
-  const [today, setToday] = useState<any | null>(null)
   const [list, setList] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -63,4 +61,3 @@ export default function EmployeeAttendance() {
     </div>
   )
 }
-

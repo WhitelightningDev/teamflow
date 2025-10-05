@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { getUser } from '../../lib/api'
 
 export default function AnnouncementsList() {
   const [items, setItems] = useState<any[]>([])
@@ -40,4 +39,3 @@ export default function AnnouncementsList() {
     </div>
   )
 }
-
