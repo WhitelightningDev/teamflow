@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { listLeaves, listDocuments, getUser, listMyAssignmentActivityApi, type AssignmentActivity } from '../../lib/api'
+import { listLeaves, listDocuments, getUser, listMyAssignmentActivityApi, type AssignmentActivity, listMyAssignmentsApi, type MyAssignment } from '../../lib/api'
 import { Skeleton } from '@heroui/react'
 
 export default function EmployeeDashboard() {
@@ -10,6 +10,7 @@ export default function EmployeeDashboard() {
   const [myDocs, setMyDocs] = useState(0)
   const [recent, setRecent] = useState<{ id: string | number; event: string }[]>([])
   const [assignmentActivity, setAssignmentActivity] = useState<AssignmentActivity[]>([])
+  const [myAssignments, setMyAssignments] = useState<MyAssignment[]>([])
   const [assignLoading, setAssignLoading] = useState(true)
 
   useEffect(() => {
@@ -30,8 +31,14 @@ export default function EmployeeDashboard() {
       }
       setAssignLoading(true)
       try {
-        const assignFeed = await listMyAssignmentActivityApi({ page: 1, limit: 10 }).catch(() => ({ items: [] as AssignmentActivity[] }))
-        if (!cancelled) setAssignmentActivity(assignFeed.items || [])
+        const [assignFeed, assignments] = await Promise.all([
+          listMyAssignmentActivityApi({ page: 1, limit: 10 }).catch(() => ({ items: [] as AssignmentActivity[] })),
+          listMyAssignmentsApi().catch(() => ({ items: [] as MyAssignment[] })),
+        ])
+        if (!cancelled) {
+          setAssignmentActivity(assignFeed.items || [])
+          setMyAssignments(assignments.items || [])
+        }
       } finally {
         if (!cancelled) setAssignLoading(false)
       }
@@ -69,6 +76,35 @@ export default function EmployeeDashboard() {
       </section>
 
       <section className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 p-6 shadow-sm">
+        <h2 className="text-lg font-semibold mb-3">My Jobs</h2>
+        {assignLoading ? (
+          <ul className="space-y-2" aria-busy>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <li key={i} className="rounded-lg border border-black/5 dark:border-white/10 px-3 py-2">
+                <div className="flex items-center justify-between animate-pulse">
+                  <Skeleton className="w-1/2 rounded"><div className="h-3 w-full rounded bg-black/10 dark:bg-white/10" /></Skeleton>
+                  <Skeleton className="w-16 rounded"><div className="h-3 w-full rounded bg-black/10 dark:bg-white/10" /></Skeleton>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : myAssignments.length === 0 ? (
+          <div className="text-sm text-slate-500">No assigned jobs.</div>
+        ) : (
+          <ul className="space-y-2 text-sm">
+            {myAssignments.map((a) => (
+              <li key={a.job_id} className="rounded-lg border border-black/5 dark:border-white/10 px-3 py-2 flex items-center justify-between">
+                <span>{a.job_name || `Job #${a.job_id}`}{a.client_name ? ` — ${a.client_name}` : ''}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${a.state === 'done' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-200' : a.state === 'in_progress' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200' : a.state === 'canceled' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-200' : 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200'}`}>
+                  {a.state === 'done' ? 'Done' : a.state === 'in_progress' ? 'In Progress' : a.state === 'canceled' ? 'Canceled' : 'Assigned'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 p-6 shadow-sm">
         <h2 className="text-lg font-semibold mb-3">Job Assignment Activity</h2>
         {assignLoading ? (
           <ul className="space-y-2" aria-busy>
@@ -88,7 +124,8 @@ export default function EmployeeDashboard() {
             {assignmentActivity.map((ev) => (
               <li key={ev.id} className="rounded-lg border border-black/5 dark:border-white/10 px-3 py-2 flex items-center justify-between">
                 <span>
-                  {ev.action === 'assigned' ? 'Assigned to' : 'Unassigned from'} {ev.job_name || (ev.job_id ? `Job #${ev.job_id}` : 'a job')}
+                  {ev.action === 'assigned' ? 'Assigned to' : ev.action === 'started' ? 'Started' : ev.action === 'done' ? 'Completed' : ev.action === 'canceled' ? 'Canceled' : ev.action}
+                  {' '}{ev.job_name || (ev.job_id ? `Job #${ev.job_id}` : 'a job')}
                 </span>
                 <span className="text-xs text-slate-500">{new Date(ev.created_at).toLocaleString()}</span>
               </li>

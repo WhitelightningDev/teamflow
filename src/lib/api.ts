@@ -432,7 +432,7 @@ export type AssignmentActivity = {
   id: string | number
   job_id?: string | number | null
   job_name?: string | null
-  action: 'assigned' | 'unassigned'
+  action: 'assigned' | 'started' | 'done' | 'canceled' | 'unassigned'
   created_at: string
 }
 
@@ -443,6 +443,12 @@ export async function listMyAssignmentActivityApi(params?: { page?: number; limi
   if (params?.employee_id != null) q.set('employee_id', String(params.employee_id))
   const qs = q.toString()
   return apiFetch<Paginated<AssignmentActivity>>(`/api/v1/time/assignments/activity${qs ? `?${qs}` : ''}`, { method: 'GET' })
+}
+
+// My assignments with state
+export type MyAssignment = { job_id: string | number; job_name: string; client_name?: string | null; state: 'assigned' | 'in_progress' | 'done' | 'canceled'; state_changed_at?: string }
+export async function listMyAssignmentsApi(): Promise<{ items: MyAssignment[] }> {
+  return apiFetch<{ items: MyAssignment[] }>(`/api/v1/time/my/assignments`, { method: 'GET' })
 }
 
 // Settings APIs

@@ -15,6 +15,7 @@ import EmployeesPage from './pages/Employees'
 import LeavesPage from './pages/Leaves'
 import DocumentsPage from './pages/Documents'
 import SettingsPage from './pages/Settings'
+import ProfilePage from './pages/Profile'
 import TimesheetsPage from './pages/Time/Timesheets'
 import JobsPage from './pages/Time/Jobs'
 import BillingPage from './pages/Time/Billing'
@@ -42,7 +43,8 @@ export default function AppRouter() {
         <Route path="/time/jobs" element={<RequireRole allow={["admin","manager","hr"]}><RequireAuth><JobsPage /></RequireAuth></RequireRole>} />
         <Route path="/time/billing" element={<RequireRole allow={["admin","manager","hr"]}><RequireAuth><BillingPage /></RequireAuth></RequireRole>} />
         <Route path="/not-authorized" element={<div className='p-6 text-center text-slate-600'>Not authorized</div>} />
-        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/profile" element={<RequireAuth><ProfilePage /></RequireAuth>} />
+        <Route path="/settings" element={<RequireRole allow={["admin","manager","hr"]}><SettingsPage /></RequireRole>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

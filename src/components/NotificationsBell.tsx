@@ -59,7 +59,7 @@ export default function NotificationsBell() {
               } else if (n.type === 'job_assignment') {
                 const act = (n.payload?.action || '').toLowerCase()
                 const job = n.payload?.job_name || (n.payload?.job_id ? `Job #${n.payload.job_id}` : 'a job')
-                text = act === 'unassigned' ? `Unassigned from ${job}` : `Assigned to ${job}`
+                text = act === 'unassigned' || act === 'canceled' ? `Canceled ${job}` : `Assigned to ${job}`
               } else {
                 // Leave notifications (requested/status)
                 const status = n.payload?.status || n.type
