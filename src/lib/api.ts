@@ -175,6 +175,63 @@ export type DocumentOut = {
   category?: string | null
 }
 
+// Time tracking types
+export type JobOut = {
+  id: string | number
+  name: string
+  client_name?: string | null
+  default_rate: number
+  active: boolean
+}
+
+export type JobIn = {
+  name: string
+  client_name?: string | null
+  default_rate?: number
+  active?: boolean
+}
+
+export type JobUpdate = Partial<JobIn>
+
+export type JobRateOut = {
+  id: string | number
+  job_id: string | number
+  employee_id: string | number
+  rate: number
+}
+
+export type JobRateIn = {
+  employee_id: string | number
+  rate: number
+}
+
+export type TimeEntryOut = {
+  id: string | number
+  job_id: string | number
+  employee_id: string | number
+  start_ts?: string
+  end_ts?: string | null
+  break_minutes: number
+  is_active: boolean
+  on_break: boolean
+  duration_minutes?: number | null
+  note?: string | null
+  rate?: number | null
+  amount?: number | null
+}
+
+export type ManualTimeEntryIn = {
+  job_id: string | number
+  start_ts: string
+  end_ts: string
+  break_minutes?: number
+  note?: string
+}
+
+export type ManualTimeEntryUpdate = Partial<Omit<ManualTimeEntryIn, 'job_id'>>
+
+export type ClockInPayload = { job_id: string | number; note?: string }
+
 export async function listEmployees(params?: { page?: number; size?: number; search?: string }): Promise<Paginated<EmployeeOut>> {
   const q = new URLSearchParams()
   if (params?.page) q.set('page', String(params.page))
@@ -282,6 +339,76 @@ export async function uploadDocument(file: File, opts?: { employee_id?: number |
 
 export async function deleteDocument(id: number | string): Promise<{ status: string; id: number | string }> {
   return apiFetch<{ status: string; id: number | string }>(`/api/v1/documents/${id}`, { method: 'DELETE' })
+}
+
+// Jobs APIs
+export async function listJobs(params?: { active?: boolean }): Promise<JobOut[]> {
+  const q = new URLSearchParams()
+  if (params?.active != null) q.set('active', String(params.active))
+  const qs = q.toString()
+  return apiFetch<JobOut[]>(`/api/v1/time/jobs${qs ? `?${qs}` : ''}`, { method: 'GET' })
+}
+
+export async function createJobApi(payload: JobIn): Promise<JobOut> {
+  return apiFetch<JobOut>(`/api/v1/time/jobs`, { method: 'POST', body: JSON.stringify(payload) })
+}
+
+export async function updateJobApi(id: string | number, payload: JobUpdate): Promise<JobOut> {
+  return apiFetch<JobOut>(`/api/v1/time/jobs/${id}`, { method: 'PATCH', body: JSON.stringify(payload) })
+}
+
+export async function setJobRateApi(jobId: string | number, payload: JobRateIn): Promise<JobRateOut> {
+  return apiFetch<JobRateOut>(`/api/v1/time/jobs/${jobId}/rates`, { method: 'POST', body: JSON.stringify(payload) })
+}
+
+export async function listJobRatesApi(jobId: string | number): Promise<JobRateOut[]> {
+  return apiFetch<JobRateOut[]>(`/api/v1/time/jobs/${jobId}/rates`, { method: 'GET' })
+}
+
+// Time entry APIs
+export async function clockInApi(payload: ClockInPayload): Promise<TimeEntryOut> {
+  return apiFetch<TimeEntryOut>(`/api/v1/time/entries/clock-in`, { method: 'POST', body: JSON.stringify(payload) })
+}
+
+export async function breakStartApi(): Promise<TimeEntryOut> {
+  return apiFetch<TimeEntryOut>(`/api/v1/time/entries/break/start`, { method: 'POST' })
+}
+
+export async function breakEndApi(): Promise<TimeEntryOut> {
+  return apiFetch<TimeEntryOut>(`/api/v1/time/entries/break/end`, { method: 'POST' })
+}
+
+export async function clockOutApi(): Promise<TimeEntryOut> {
+  return apiFetch<TimeEntryOut>(`/api/v1/time/entries/clock-out`, { method: 'POST' })
+}
+
+export async function createManualEntryApi(payload: ManualTimeEntryIn): Promise<TimeEntryOut> {
+  return apiFetch<TimeEntryOut>(`/api/v1/time/entries`, { method: 'POST', body: JSON.stringify(payload) })
+}
+
+export async function updateManualEntryApi(id: string | number, payload: ManualTimeEntryUpdate): Promise<TimeEntryOut> {
+  return apiFetch<TimeEntryOut>(`/api/v1/time/entries/${id}`, { method: 'PATCH', body: JSON.stringify(payload) })
+}
+
+export async function deleteTimeEntryApi(id: string | number): Promise<{ status: string; id: string | number }> {
+  return apiFetch<{ status: string; id: string | number }>(`/api/v1/time/entries/${id}`, { method: 'DELETE' })
+}
+
+export async function listMyTimeEntriesApi(params?: { job_id?: string | number; from?: string; to?: string; page?: number; limit?: number }): Promise<Paginated<TimeEntryOut>> {
+  const q = new URLSearchParams()
+  if (params?.job_id) q.set('job_id', String(params.job_id))
+  if (params?.from) q.set('from', params.from)
+  if (params?.to) q.set('to', params.to)
+  if (params?.page) q.set('page', String(params.page))
+  if (params?.limit) q.set('limit', String(params.limit))
+  const qs = q.toString()
+  return apiFetch<Paginated<TimeEntryOut>>(`/api/v1/time/entries/me${qs ? `?${qs}` : ''}`, { method: 'GET' })
+}
+
+export async function billingReportApi(month: string, job_id?: string | number): Promise<{ month: string; jobs: { job_id: string; job_name: string; client_name?: string | null; minutes: number; hours: number; amount: number; by_employee: { employee_id: string; minutes: number; rate: number; amount: number }[] }[] }> {
+  const q = new URLSearchParams({ month })
+  if (job_id) q.set('job_id', String(job_id))
+  return apiFetch(`/api/v1/time/reports/billing?${q.toString()}`, { method: 'GET' })
 }
 
 // Settings APIs
