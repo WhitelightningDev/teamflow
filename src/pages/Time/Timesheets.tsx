@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { listJobs, type JobOut, listMyTimeEntriesApi, type Paginated, type TimeEntryOut, clockInApi, breakStartApi, breakEndApi, clockOutApi, createManualEntryApi } from '../../lib/api'
+import { listJobs, type JobOut, listMyTimeEntriesApi, type Paginated, type TimeEntryOut, clockInApi, breakStartApi, breakEndApi, clockOutApi, createManualEntryApi, getUser } from '../../lib/api'
+import Breadcrumbs from '../../components/Breadcrumbs'
 
 export default function TimesheetsPage() {
   const [jobs, setJobs] = useState<JobOut[]>([])
@@ -32,6 +33,8 @@ export default function TimesheetsPage() {
     return j ? j.name : String(id)
   }
   const onBreak = !!activeEntry?.on_break
+  const role = ((getUser() as any)?.role) || 'employee'
+  const isAdminLike = ['admin','manager','hr'].includes(role)
 
   async function onClockIn() {
     if (!selectedJobId) { alert('Pick a job first'); return }
@@ -75,10 +78,12 @@ export default function TimesheetsPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-4 space-y-6">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">My Timesheet</h1>
-      </header>
+    <div className="min-h-screen bg-slate-50 dark:bg-neutral-900 text-slate-900 dark:text-slate-100">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <Breadcrumbs items={[{ label: 'Dashboard', to: '/dashboard' }, { label: 'Time' }]} />
+        <header className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">My Timesheet</h1>
+        </header>
 
       {/* Clock controls */}
       <section className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 p-4 space-y-3">
@@ -97,7 +102,7 @@ export default function TimesheetsPage() {
               <button onClick={onClockOut} className="rounded-lg bg-blue-600 text-white px-3 py-1.5 font-medium shadow-sm hover:bg-blue-700">Clock Out</button>
             </div>
           </div>
-        ) : (
+        ) : jobs.length > 0 ? (
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <select className="rounded-lg border px-3 py-1.5 bg-white dark:bg-neutral-900" value={selectedJobId} onChange={(e) => setSelectedJobId(e.target.value)}>
               {jobs.map((j) => (
@@ -106,6 +111,8 @@ export default function TimesheetsPage() {
             </select>
             <button onClick={onClockIn} className="rounded-lg bg-blue-600 text-white px-3 py-1.5 font-medium shadow-sm hover:bg-blue-700">Clock In</button>
           </div>
+        ) : (
+          <div className="text-sm text-slate-600">No jobs available to clock into. {isAdminLike ? (<a className="text-blue-600 hover:underline" href="/time/jobs">Create job types</a>) : 'Please ask an admin to add job types.'}</div>
         )}
       </section>
 
@@ -115,12 +122,16 @@ export default function TimesheetsPage() {
         <form onSubmit={onCreateManual} className="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
           <div>
             <label className="text-sm text-slate-500">Job</label>
-            <select className="w-full rounded-lg border px-3 py-1.5 bg-white dark:bg-neutral-900" value={mJobId} onChange={(e) => setMJobId(e.target.value)}>
-              <option value="">Select job…</option>
-              {jobs.map((j) => (
-                <option key={j.id} value={String(j.id)}>{j.name}{j.client_name ? ` – ${j.client_name}` : ''}</option>
-              ))}
-            </select>
+            {jobs.length > 0 ? (
+              <select className="w-full rounded-lg border px-3 py-1.5 bg-white dark:bg-neutral-900" value={mJobId} onChange={(e) => setMJobId(e.target.value)}>
+                <option value="">Select job…</option>
+                {jobs.map((j) => (
+                  <option key={j.id} value={String(j.id)}>{j.name}{j.client_name ? ` – ${j.client_name}` : ''}</option>
+                ))}
+              </select>
+            ) : (
+              <div className="text-sm text-slate-600">No job types yet. {isAdminLike ? (<a className="text-blue-600 hover:underline" href="/time/jobs">Create job types</a>) : 'Ask an admin to create job types.'}</div>
+            )}
           </div>
           <div>
             <label className="text-sm text-slate-500">Start</label>
@@ -176,6 +187,7 @@ export default function TimesheetsPage() {
           </table>
         )}
       </section>
+      </div>
     </div>
   )
 }
