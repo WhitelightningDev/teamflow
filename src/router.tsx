@@ -15,6 +15,9 @@ import EmployeesPage from './pages/Employees'
 import LeavesPage from './pages/Leaves'
 import DocumentsPage from './pages/Documents'
 import SettingsPage from './pages/Settings'
+import TimesheetsPage from './pages/Time/Timesheets'
+import JobsPage from './pages/Time/Jobs'
+import BillingPage from './pages/Time/Billing'
 
 export default function AppRouter() {
   return (
@@ -32,6 +35,9 @@ export default function AppRouter() {
         <Route path="/announcements" element={<AnnouncementsList />} />
         <Route path="/announcements/new" element={<RequireRole allow={["admin","manager","hr"]}><AnnouncementsCreate /></RequireRole>} />
         <Route path="/documents" element={<DocumentsPage />} />
+        <Route path="/time" element={<TimesheetsPage />} />
+        <Route path="/time/jobs" element={<RequireRole allow={["admin","manager","hr"]}><JobsPage /></RequireRole>} />
+        <Route path="/time/billing" element={<RequireRole allow={["admin","manager","hr"]}><BillingPage /></RequireRole>} />
         <Route path="/not-authorized" element={<div className='p-6 text-center text-slate-600'>Not authorized</div>} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<NotFound />} />
