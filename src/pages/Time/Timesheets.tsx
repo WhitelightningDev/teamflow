@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { listJobs, type JobOut, listMyTimeEntriesApi, type Paginated, type TimeEntryOut, clockInApi, breakStartApi, breakEndApi, clockOutApi, createManualEntryApi, getUser } from '../../lib/api'
 import Breadcrumbs from '../../components/Breadcrumbs'
+import { Skeleton } from '@heroui/react'
 
 export default function TimesheetsPage() {
   const [jobs, setJobs] = useState<JobOut[]>([])
@@ -87,7 +88,19 @@ export default function TimesheetsPage() {
 
       {/* Clock controls */}
       <section className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 p-4 space-y-3">
-        {activeEntry ? (
+        {loading ? (
+          <div className="space-y-3" aria-busy>
+            <div className="animate-pulse">
+              <Skeleton className="w-2/3 rounded"><div className="h-4 w-full rounded bg-black/10 dark:bg-white/10" /></Skeleton>
+              <div className="mt-2"><Skeleton className="w-1/2 rounded"><div className="h-3 w-full rounded bg-black/10 dark:bg-white/10" /></Skeleton></div>
+            </div>
+            <div className="flex gap-2 animate-pulse">
+              <Skeleton className="w-28 rounded"><div className="h-8 w-full rounded bg-black/10 dark:bg-white/10" /></Skeleton>
+              <Skeleton className="w-28 rounded"><div className="h-8 w-full rounded bg-black/10 dark:bg-white/10" /></Skeleton>
+              <Skeleton className="w-28 rounded"><div className="h-8 w-full rounded bg-black/10 dark:bg-white/10" /></Skeleton>
+            </div>
+          </div>
+        ) : activeEntry ? (
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="text-sm">
               <div>Active on job <span className="font-medium">{jobName(activeEntry.job_id)}</span></div>
@@ -158,7 +171,19 @@ export default function TimesheetsPage() {
       <section className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 p-4">
         <h2 className="text-lg font-semibold mb-3">Recent Entries</h2>
         {loading ? (
-          <div className="text-sm text-slate-500">Loading…</div>
+          <div className="space-y-2" aria-busy>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="grid grid-cols-7 gap-3 animate-pulse">
+                <div className="h-4 rounded bg-black/10 dark:bg-white/10" />
+                <div className="h-4 rounded bg-black/10 dark:bg-white/10" />
+                <div className="h-4 rounded bg-black/10 dark:bg-white/10" />
+                <div className="h-4 rounded bg-black/10 dark:bg-white/10" />
+                <div className="h-4 rounded bg-black/10 dark:bg-white/10" />
+                <div className="h-4 rounded bg-black/10 dark:bg-white/10" />
+                <div className="h-4 rounded bg-black/10 dark:bg-white/10" />
+              </div>
+            ))}
+          </div>
         ) : (
           <table className="w-full text-sm rounded-2xl overflow-hidden border border-black/5 dark:border-white/10">
             <thead className="bg-slate-50/80 dark:bg-neutral-800/50">
