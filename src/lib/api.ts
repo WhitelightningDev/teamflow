@@ -451,6 +451,17 @@ export async function listMyAssignmentsApi(): Promise<{ items: MyAssignment[] }>
   return apiFetch<{ items: MyAssignment[] }>(`/api/v1/time/my/assignments`, { method: 'GET' })
 }
 
+// Admin: company assignments with employee info
+export type CompanyAssignment = MyAssignment & { employee_id: string | number; employee_name?: string | null; last_activity?: string | null; last_activity_at?: string | null }
+export async function listCompanyAssignmentsApi(params?: { state?: 'assigned' | 'in_progress' | 'done' | 'canceled'; page?: number; limit?: number }): Promise<Paginated<CompanyAssignment>> {
+  const q = new URLSearchParams()
+  if (params?.state) q.set('state', params.state)
+  if (params?.page) q.set('page', String(params.page))
+  if (params?.limit) q.set('limit', String(params.limit))
+  const qs = q.toString()
+  return apiFetch<Paginated<CompanyAssignment>>(`/api/v1/time/assignments${qs ? `?${qs}` : ''}`, { method: 'GET' })
+}
+
 // Settings APIs
 export type ProfileOut = {
   id: number | string
