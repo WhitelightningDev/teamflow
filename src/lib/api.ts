@@ -342,9 +342,10 @@ export async function deleteDocument(id: number | string): Promise<{ status: str
 }
 
 // Jobs APIs
-export async function listJobs(params?: { active?: boolean }): Promise<JobOut[]> {
+export async function listJobs(params?: { active?: boolean; assigned_to_me?: boolean }): Promise<JobOut[]> {
   const q = new URLSearchParams()
   if (params?.active != null) q.set('active', String(params.active))
+  if (params?.assigned_to_me != null) q.set('assigned_to_me', String(params.assigned_to_me))
   const qs = q.toString()
   return apiFetch<JobOut[]>(`/api/v1/time/jobs${qs ? `?${qs}` : ''}`, { method: 'GET' })
 }
@@ -363,6 +364,21 @@ export async function setJobRateApi(jobId: string | number, payload: JobRateIn):
 
 export async function listJobRatesApi(jobId: string | number): Promise<JobRateOut[]> {
   return apiFetch<JobRateOut[]>(`/api/v1/time/jobs/${jobId}/rates`, { method: 'GET' })
+}
+
+// Job assignments APIs
+export type JobAssignment = { id: string | number; job_id: string | number; employee_id: string | number }
+export async function listJobAssignmentsApi(jobId: string | number): Promise<JobAssignment[]> {
+  return apiFetch<JobAssignment[]>(`/api/v1/time/jobs/${jobId}/assignments`, { method: 'GET' })
+}
+export async function assignJobApi(jobId: string | number, employee_id: string | number): Promise<JobAssignment> {
+  return apiFetch<JobAssignment>(`/api/v1/time/jobs/${jobId}/assign`, { method: 'POST', body: JSON.stringify({ employee_id }) })
+}
+export async function assignJobByEmailApi(jobId: string | number, employee_email: string): Promise<JobAssignment> {
+  return apiFetch<JobAssignment>(`/api/v1/time/jobs/${jobId}/assign`, { method: 'POST', body: JSON.stringify({ employee_email }) })
+}
+export async function unassignJobApi(jobId: string | number, employee_id: string | number): Promise<{ status: string; job_id: string | number; employee_id: string | number }> {
+  return apiFetch<{ status: string; job_id: string | number; employee_id: string | number }>(`/api/v1/time/jobs/${jobId}/assign/${employee_id}`, { method: 'DELETE' })
 }
 
 // Time entry APIs
