@@ -18,6 +18,8 @@ import SettingsPage from './pages/Settings'
 import TimesheetsPage from './pages/Time/Timesheets'
 import JobsPage from './pages/Time/Jobs'
 import BillingPage from './pages/Time/Billing'
+import RequireAuth from './lib/auth/RequireAuth'
+import BookDemoPage from './pages/BookDemo'
 
 export default function AppRouter() {
   return (
@@ -28,6 +30,7 @@ export default function AppRouter() {
         <Route path="/login" element={<Login />} />
         <Route path="/accept-invite" element={<AcceptInvite />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/book-demo" element={<BookDemoPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/employees" element={<RequireRole allow={["admin","manager","hr"]}><EmployeesPage /></RequireRole>} />
         <Route path="/leaves" element={<LeavesPage />} />
@@ -35,9 +38,9 @@ export default function AppRouter() {
         <Route path="/announcements" element={<AnnouncementsList />} />
         <Route path="/announcements/new" element={<RequireRole allow={["admin","manager","hr"]}><AnnouncementsCreate /></RequireRole>} />
         <Route path="/documents" element={<DocumentsPage />} />
-        <Route path="/time" element={<TimesheetsPage />} />
-        <Route path="/time/jobs" element={<RequireRole allow={["admin","manager","hr"]}><JobsPage /></RequireRole>} />
-        <Route path="/time/billing" element={<RequireRole allow={["admin","manager","hr"]}><BillingPage /></RequireRole>} />
+        <Route path="/time" element={<RequireAuth><TimesheetsPage /></RequireAuth>} />
+        <Route path="/time/jobs" element={<RequireRole allow={["admin","manager","hr"]}><RequireAuth><JobsPage /></RequireAuth></RequireRole>} />
+        <Route path="/time/billing" element={<RequireRole allow={["admin","manager","hr"]}><RequireAuth><BillingPage /></RequireAuth></RequireRole>} />
         <Route path="/not-authorized" element={<div className='p-6 text-center text-slate-600'>Not authorized</div>} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<NotFound />} />

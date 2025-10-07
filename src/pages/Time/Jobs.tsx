@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { listJobs, type JobOut, createJobApi, updateJobApi, setJobRateApi, listJobRatesApi, type JobRateOut } from '../../lib/api'
+import { listJobs, type JobOut, createJobApi, updateJobApi, setJobRateApi, listJobRatesApi, type JobRateOut, listJobAssignmentsApi, assignJobApi, assignJobByEmailApi, unassignJobApi } from '../../lib/api'
 import Breadcrumbs from '../../components/Breadcrumbs'
 
 export default function JobsPage() {
@@ -109,6 +109,9 @@ function JobRow({ job, onToggle, onChangeRate }: { job: JobOut; onToggle: () => 
   const [rates, setRates] = useState<JobRateOut[]>([])
   const [empId, setEmpId] = useState('')
   const [empRate, setEmpRate] = useState<number>(0)
+  const [showAssign, setShowAssign] = useState(false)
+  const [assignments, setAssignments] = useState<{ id: string | number; employee_id: string | number }[]>([])
+  const [assignEmpId, setAssignEmpId] = useState('')
 
   async function loadRates() {
     try { const data = await listJobRatesApi(job.id); setRates(data) } catch {}
@@ -121,6 +124,28 @@ function JobRow({ job, onToggle, onChangeRate }: { job: JobOut; onToggle: () => 
     try { await setJobRateApi(job.id, { employee_id: empId, rate: empRate }); setEmpId(''); setEmpRate(0); await loadRates() } catch (e: any) { alert(e?.message || 'Failed to set rate') }
   }
 
+  async function loadAssignments() {
+    try {
+      const data = await listJobAssignmentsApi(job.id)
+      setAssignments(data.map(a => ({ id: a.id, employee_id: a.employee_id })))
+    } catch {}
+  }
+  useEffect(() => { if (showAssign) loadAssignments() }, [showAssign])
+
+  async function saveAssignment(e: FormEvent) {
+    e.preventDefault()
+    if (!assignEmpId) { alert('Provide an employee ID or email'); return }
+    try {
+      // assign by id or email
+      if (assignEmpId.includes('@')) await assignJobByEmailApi(job.id, assignEmpId); else await assignJobApi(job.id, assignEmpId)
+      setAssignEmpId('')
+      await loadAssignments()
+    } catch (e: any) { alert(e?.message || 'Failed to assign') }
+  }
+  async function removeAssignment(employee_id: string | number) {
+    try { await unassignJobApi(job.id, employee_id); await loadAssignments() } catch (e: any) { alert(e?.message || 'Failed to unassign') }
+  }
+
   return (
     <tr>
       <td className="px-3 py-2">{job.name}</td>
@@ -131,6 +156,7 @@ function JobRow({ job, onToggle, onChangeRate }: { job: JobOut; onToggle: () => 
         <button onClick={onToggle} className="rounded-md border border-black/10 dark:border-white/15 px-2 py-1 hover:bg-black/5 dark:hover:bg-white/10">{job.active ? 'Deactivate' : 'Activate'}</button>
         <button onClick={onChangeRate} className="rounded-md border border-black/10 dark:border-white/15 px-2 py-1 hover:bg-black/5 dark:hover:bg-white/10">Change Rate</button>
         <button onClick={() => setShowRates((v) => !v)} className="rounded-md border border-black/10 dark:border-white/15 px-2 py-1 hover:bg-black/5 dark:hover:bg-white/10">{showRates ? 'Hide' : 'Rates'}</button>
+        <button onClick={() => setShowAssign((v) => !v)} className="rounded-md border border-black/10 dark:border-white/15 px-2 py-1 hover:bg-black/5 dark:hover:bg-white/10">{showAssign ? 'Hide' : 'Assignments'}</button>
         {showRates && (
           <div className="mt-2 space-y-2">
             <div className="text-xs text-slate-500">Per-employee rates</div>
@@ -143,6 +169,24 @@ function JobRow({ job, onToggle, onChangeRate }: { job: JobOut; onToggle: () => 
               <input value={empId} onChange={(e) => setEmpId(e.target.value)} placeholder="Employee ID" className="rounded-md border px-2 py-1 bg-white dark:bg-neutral-900" />
               <input type="number" min={0} value={empRate} onChange={(e) => setEmpRate(Number(e.target.value))} placeholder="Rate" className="w-28 rounded-md border px-2 py-1 bg-white dark:bg-neutral-900" />
               <button className="rounded-md bg-blue-600 text-white px-2 py-1">Set</button>
+            </form>
+          </div>
+        )}
+        {showAssign && (
+          <div className="mt-2 space-y-2">
+            <div className="text-xs text-slate-500">Assigned employees (only these can clock into this job)</div>
+            <ul className="text-xs">
+              {assignments.map((a) => (
+                <li key={String(a.id)} className="py-0.5 flex items-center justify-between">
+                  <span>Emp {String(a.employee_id)}</span>
+                  <button onClick={() => removeAssignment(a.employee_id)} className="rounded-md border border-black/10 dark:border-white/15 px-1 py-0.5 hover:bg-black/5 dark:hover:bg-white/10">Remove</button>
+                </li>
+              ))}
+              {assignments.length === 0 && <li className="text-slate-500 py-0.5">No assignments yet</li>}
+            </ul>
+            <form onSubmit={saveAssignment} className="flex items-center gap-2">
+              <input value={assignEmpId} onChange={(e) => setAssignEmpId(e.target.value)} placeholder="Employee ID or Email" className="rounded-md border px-2 py-1 bg-white dark:bg-neutral-900" />
+              <button className="rounded-md bg-blue-600 text-white px-2 py-1">Assign</button>
             </form>
           </div>
         )}

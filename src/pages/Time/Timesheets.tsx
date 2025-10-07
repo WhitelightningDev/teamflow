@@ -14,7 +14,7 @@ export default function TimesheetsPage() {
     setLoading(true)
     try {
       const [jobsRes, entriesRes] = await Promise.all([
-        listJobs({ active: true }),
+        listJobs({ active: true, assigned_to_me: !isAdminLike }),
         listMyTimeEntriesApi({ page: 1, limit: 20 }),
       ])
       setJobs(jobsRes)
@@ -105,6 +105,7 @@ export default function TimesheetsPage() {
         ) : jobs.length > 0 ? (
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <select className="rounded-lg border px-3 py-1.5 bg-white dark:bg-neutral-900" value={selectedJobId} onChange={(e) => setSelectedJobId(e.target.value)}>
+              <option value="">Select job…</option>
               {jobs.map((j) => (
                 <option key={j.id} value={String(j.id)}>{j.name}{j.client_name ? ` – ${j.client_name}` : ''} • R{j.default_rate.toFixed(2)}/h</option>
               ))}
