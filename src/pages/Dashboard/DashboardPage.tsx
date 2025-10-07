@@ -131,6 +131,9 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const items = isAdminLikeRole
     ? [
         { to: '/dashboard', label: 'Dashboard', Icon: GridIcon },
+        { to: '/time', label: 'Time', Icon: ClockIcon },
+        { to: '/time/jobs', label: 'Jobs', Icon: BriefcaseIcon },
+        { to: '/time/billing', label: 'Billing', Icon: DollarIcon },
         { to: '/employees', label: 'Employees', Icon: UsersIcon },
         { to: '/leaves', label: 'Leaves', Icon: CalendarIcon },
         { to: '/documents', label: 'Documents', Icon: FileIcon },
@@ -138,6 +141,7 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
       ]
     : [
         { to: '/dashboard', label: 'Dashboard', Icon: GridIcon },
+        { to: '/time', label: 'My Timesheet', Icon: ClockIcon },
         { to: '/leaves', label: 'My Leaves', Icon: CalendarIcon },
         { to: '/documents', label: 'My Documents', Icon: FileIcon },
         { to: '/settings', label: 'Profile', Icon: SettingsIcon },
@@ -190,6 +194,27 @@ function GridIcon({ className = '' }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
       <path d="M3 3h8v8H3zM13 3h8v5h-8zM13 10h8v11h-8zM3 13h8v8H3z" />
+    </svg>
+  )
+}
+function ClockIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
+      <path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2m1 11h-4V7h2v4h2z" />
+    </svg>
+  )
+}
+function BriefcaseIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
+      <path d="M10 2h4a2 2 0 0 1 2 2v2h4a2 2 0 0 1 2 2v3H2V8a2 2 0 0 1 2-2h4V4a2 2 0 0 1 2-2m4 4V4h-4v2zm10 6H2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2z" />
+    </svg>
+  )
+}
+function DollarIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
+      <path d="M12 1a1 1 0 0 1 1 1v1.06a5 5 0 0 1 4 4.94h-2a3 3 0 0 0-3-3H9a2 2 0 0 0 0 4h3a5 5 0 0 1 0 10H13V23a1 1 0 0 1-2 0v-1.06a5 5 0 0 1-4-4.94h2a3 3 0 0 0 3 3h2a2 2 0 0 0 0-4H11a5 5 0 0 1 0-10H11V2a1 1 0 0 1 1-1Z" />
     </svg>
   )
 }
