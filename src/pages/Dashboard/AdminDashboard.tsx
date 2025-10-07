@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
 import { Link } from 'react-router-dom'
 import { listEmployees, listLeaves, listDocuments, getUser, updateLeaveStatus } from '../../lib/api'
+import SummarySkeleton from '../../components/SummarySkeleton'
 
 type SummaryCard = {
   key: string
@@ -24,7 +25,7 @@ export default function AdminDashboard() {
   ])
   const [pending, setPending] = useState<{ id: string | number; text: string }[]>([])
   const [recent, setRecent] = useState<{ id: string | number; name: string; event: string }[]>([])
-  const [, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let cancelled = false
@@ -96,22 +97,26 @@ export default function AdminDashboard() {
       </header>
 
       {/* KPIs */}
-      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        {summary.map(({ key, label, value, sublabel, color, Icon }) => (
-          <div key={key} className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 p-6 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className={`h-10 w-10 rounded-lg bg-black/5 dark:bg-white/10 flex items-center justify-center ${color}`}>
-                <Icon className="h-5 w-5" />
+      {loading ? (
+        <SummarySkeleton items={4} />
+      ) : (
+        <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+          {summary.map(({ key, label, value, sublabel, color, Icon }) => (
+            <div key={key} className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 p-6 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className={`h-10 w-10 rounded-lg bg-black/5 dark:bg-white/10 flex items-center justify-center ${color}`}>
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="text-sm text-slate-500">{label}</div>
+                  <div className="text-2xl font-semibold">{value}</div>
+                </div>
               </div>
-              <div>
-                <div className="text-sm text-slate-500">{label}</div>
-                <div className="text-2xl font-semibold">{value}</div>
-              </div>
+              <div className="mt-2 text-xs text-slate-500">{sublabel}</div>
             </div>
-            <div className="mt-2 text-xs text-slate-500">{sublabel}</div>
-          </div>
-        ))}
-      </section>
+          ))}
+        </section>
+      )}
 
       {/* Pending Actions */}
       <section className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 p-6 shadow-sm">

@@ -30,8 +30,8 @@ export default function DashboardPage() {
     if (h === '#employees') navigate('/employees', { replace: true })
     else if (h === '#leaves') navigate('/leaves', { replace: true })
     else if (h === '#documents') navigate('/documents', { replace: true })
-    else if (h === '#settings') navigate('/settings', { replace: true })
-  }, [location.hash, navigate])
+    else if (h === '#settings') navigate(isAdminLikeRole ? '/settings' : '/profile', { replace: true })
+  }, [location.hash, navigate, isAdminLikeRole])
 
   // Role-specific dashboards are rendered below; removing legacy summary code
 
@@ -66,8 +66,10 @@ export default function DashboardPage() {
             </button>
             {userMenuOpen && (
               <div className="absolute right-0 mt-2 w-44 rounded-lg border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 shadow-lg py-1 text-sm">
-                <Link to="#" className="block px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10">Profile</Link>
-                <Link to="#" className="block px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10">Settings</Link>
+                <Link to="/profile" className="block px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10">Profile</Link>
+                {isAdminLikeRole && (
+                  <Link to="/settings" className="block px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10">Settings</Link>
+                )}
                 <div className="my-1 h-px bg-black/5 dark:bg-white/10" />
                 <button onClick={onLogout} className="w-full text-left px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10 text-rose-600">Logout</button>
               </div>
@@ -146,7 +148,7 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
         { to: '/time', label: 'My Timesheet', Icon: ClockIcon },
         { to: '/leaves', label: 'My Leaves', Icon: CalendarIcon },
         { to: '/documents', label: 'My Documents', Icon: FileIcon },
-        { to: '/settings', label: 'Profile', Icon: SettingsIcon },
+        { to: '/profile', label: 'Profile', Icon: SettingsIcon },
       ]
   return (
     <nav className="rounded-2xl border border-black/5 dark:border-white/10 bg-white/80 dark:bg-neutral-900/60 backdrop-blur p-3 sm:p-4 space-y-1">
