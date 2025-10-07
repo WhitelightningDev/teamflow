@@ -6,6 +6,7 @@ import { getUser, clearAuth } from '../../lib/api'
 import NotificationsBell from '../../components/NotificationsBell'
 import AdminDashboard from './AdminDashboard'
 import EmployeeDashboard from './EmployeeDashboard'
+import Breadcrumbs from '../../components/Breadcrumbs'
 
 export default function DashboardPage() {
   const storedUser = getUser()
@@ -101,6 +102,7 @@ export default function DashboardPage() {
 
         {/* Main content */}
         <main className="lg:col-span-9 space-y-6">
+          <Breadcrumbs items={[{ label: 'Dashboard' }]} />
           {isAdminLikeRole ? <AdminDashboard /> : <EmployeeDashboard />}
         </main>
       </div>
@@ -132,7 +134,7 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
     ? [
         { to: '/dashboard', label: 'Dashboard', Icon: GridIcon },
         { to: '/time', label: 'Time', Icon: ClockIcon },
-        { to: '/time/jobs', label: 'Jobs', Icon: BriefcaseIcon },
+        { to: '/time/jobs', label: 'Job Types', Icon: BriefcaseIcon },
         { to: '/time/billing', label: 'Billing', Icon: DollarIcon },
         { to: '/employees', label: 'Employees', Icon: UsersIcon },
         { to: '/leaves', label: 'Leaves', Icon: CalendarIcon },

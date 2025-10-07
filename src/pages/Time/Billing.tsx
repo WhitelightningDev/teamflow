@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { billingReportApi, listJobs, type JobOut } from '../../lib/api'
+import Breadcrumbs from '../../components/Breadcrumbs'
 
 type JobSummary = {
   job_id: string
@@ -32,10 +33,12 @@ export default function BillingPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-4 space-y-6">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Billing Report</h1>
-      </header>
+    <div className="min-h-screen bg-slate-50 dark:bg-neutral-900 text-slate-900 dark:text-slate-100">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <Breadcrumbs items={[{ label: 'Dashboard', to: '/dashboard' }, { label: 'Time', to: '/time' }, { label: 'Billing' }]} />
+        <header className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Billing Report</h1>
+        </header>
 
       <section className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 p-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-end gap-3">
@@ -83,7 +86,7 @@ export default function BillingPage() {
           <div className="mt-4 text-xs text-slate-500">Totals by employee available in API response</div>
         </section>
       )}
+      </div>
     </div>
   )
 }
-

@@ -91,7 +91,7 @@ export default function AdminDashboard() {
       <header className="flex items-center justify-between">
         <h1 className="text-2xl sm:text-3xl font-bold">Welcome, {userName}</h1>
         <div className="flex gap-2">
-          <Link to="/employees" className="rounded-lg bg-blue-600 text-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-blue-700">Invite Employee</Link>
+          <Link to="/employees" className="rounded-lg bg-blue-600 !text-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-blue-700 hover:!text-white">Invite Employee</Link>
         </div>
       </header>
 
