@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { listLeaves, listDocuments, getUser, listMyAssignmentActivityApi, type AssignmentActivity } from '../../lib/api'
+import { Skeleton } from '@heroui/react'
 
 export default function EmployeeDashboard() {
   const user = getUser()
@@ -9,6 +10,7 @@ export default function EmployeeDashboard() {
   const [myDocs, setMyDocs] = useState(0)
   const [recent, setRecent] = useState<{ id: string | number; event: string }[]>([])
   const [assignmentActivity, setAssignmentActivity] = useState<AssignmentActivity[]>([])
+  const [assignLoading, setAssignLoading] = useState(true)
 
   useEffect(() => {
     let cancelled = false
@@ -18,7 +20,6 @@ export default function EmployeeDashboard() {
         listLeaves({ page: 1, size: 10 }),
         listDocuments({ page: 1, size: 10 }),
       ])
-      const assignFeed = await listMyAssignmentActivityApi({ page: 1, limit: 10 }).catch(() => ({ items: [] as AssignmentActivity[] }))
       if (!cancelled) {
         setMyPending(leavesReq.total)
         setMyDocs(docs.total)
@@ -26,7 +27,13 @@ export default function EmployeeDashboard() {
           ...leavesAll.items.map((l) => ({ id: `l-${l.id}`, event: `Leave ${l.status}` })),
           ...docs.items.map((d) => ({ id: `d-${d.id}`, event: `Uploaded ${d.filename}` })),
         ].slice(0, 10))
-        setAssignmentActivity(assignFeed.items || [])
+      }
+      setAssignLoading(true)
+      try {
+        const assignFeed = await listMyAssignmentActivityApi({ page: 1, limit: 10 }).catch(() => ({ items: [] as AssignmentActivity[] }))
+        if (!cancelled) setAssignmentActivity(assignFeed.items || [])
+      } finally {
+        if (!cancelled) setAssignLoading(false)
       }
     }
     load()
@@ -63,7 +70,18 @@ export default function EmployeeDashboard() {
 
       <section className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 p-6 shadow-sm">
         <h2 className="text-lg font-semibold mb-3">Job Assignment Activity</h2>
-        {assignmentActivity.length === 0 ? (
+        {assignLoading ? (
+          <ul className="space-y-2" aria-busy>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <li key={i} className="rounded-lg border border-black/5 dark:border-white/10 px-3 py-2">
+                <div className="flex items-center justify-between animate-pulse">
+                  <Skeleton className="w-1/2 rounded"><div className="h-3 w-full rounded bg-black/10 dark:bg-white/10" /></Skeleton>
+                  <Skeleton className="w-1/4 rounded"><div className="h-3 w-full rounded bg-black/10 dark:bg-white/10" /></Skeleton>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : assignmentActivity.length === 0 ? (
           <div className="text-sm text-slate-500">No assignment activity yet.</div>
         ) : (
           <ul className="space-y-2 text-sm">
