@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { listLeaves, listDocuments, getUser } from '../../lib/api'
+import { listLeaves, listDocuments, getUser, listMyAssignmentActivityApi, type AssignmentActivity } from '../../lib/api'
 
 export default function EmployeeDashboard() {
   const user = getUser()
@@ -8,6 +8,7 @@ export default function EmployeeDashboard() {
   const [myPending, setMyPending] = useState(0)
   const [myDocs, setMyDocs] = useState(0)
   const [recent, setRecent] = useState<{ id: string | number; event: string }[]>([])
+  const [assignmentActivity, setAssignmentActivity] = useState<AssignmentActivity[]>([])
 
   useEffect(() => {
     let cancelled = false
@@ -17,6 +18,7 @@ export default function EmployeeDashboard() {
         listLeaves({ page: 1, size: 10 }),
         listDocuments({ page: 1, size: 10 }),
       ])
+      const assignFeed = await listMyAssignmentActivityApi({ page: 1, limit: 10 }).catch(() => ({ items: [] as AssignmentActivity[] }))
       if (!cancelled) {
         setMyPending(leavesReq.total)
         setMyDocs(docs.total)
@@ -24,6 +26,7 @@ export default function EmployeeDashboard() {
           ...leavesAll.items.map((l) => ({ id: `l-${l.id}`, event: `Leave ${l.status}` })),
           ...docs.items.map((d) => ({ id: `d-${d.id}`, event: `Uploaded ${d.filename}` })),
         ].slice(0, 10))
+        setAssignmentActivity(assignFeed.items || [])
       }
     }
     load()
@@ -35,7 +38,7 @@ export default function EmployeeDashboard() {
       <header className="flex items-center justify-between">
         <h1 className="text-2xl sm:text-3xl font-bold">Welcome, {userName}</h1>
         <div className="flex gap-2">
-          <Link to="/leaves" className="rounded-lg bg-blue-600 text-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-blue-700">Request Leave</Link>
+          <Link to="/leaves" className="rounded-lg bg-blue-600 !text-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-blue-700">Request Leave</Link>
           <Link to="/documents" className="rounded-lg border border-black/10 dark:border-white/15 px-4 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10">Upload Document</Link>
         </div>
       </header>
@@ -57,6 +60,24 @@ export default function EmployeeDashboard() {
           </ul>
         )}
       </section>
+
+      <section className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 p-6 shadow-sm">
+        <h2 className="text-lg font-semibold mb-3">Job Assignment Activity</h2>
+        {assignmentActivity.length === 0 ? (
+          <div className="text-sm text-slate-500">No assignment activity yet.</div>
+        ) : (
+          <ul className="space-y-2 text-sm">
+            {assignmentActivity.map((ev) => (
+              <li key={ev.id} className="rounded-lg border border-black/5 dark:border-white/10 px-3 py-2 flex items-center justify-between">
+                <span>
+                  {ev.action === 'assigned' ? 'Assigned to' : 'Unassigned from'} {ev.job_name || (ev.job_id ? `Job #${ev.job_id}` : 'a job')}
+                </span>
+                <span className="text-xs text-slate-500">{new Date(ev.created_at).toLocaleString()}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   )
 }
@@ -69,4 +90,3 @@ function KPI({ label, value }: { label: string; value: string }) {
     </div>
   )
 }
-

@@ -427,6 +427,24 @@ export async function billingReportApi(month: string, job_id?: string | number):
   return apiFetch(`/api/v1/time/reports/billing?${q.toString()}`, { method: 'GET' })
 }
 
+// Assignment activity APIs
+export type AssignmentActivity = {
+  id: string | number
+  job_id?: string | number | null
+  job_name?: string | null
+  action: 'assigned' | 'unassigned'
+  created_at: string
+}
+
+export async function listMyAssignmentActivityApi(params?: { page?: number; limit?: number; employee_id?: string | number }): Promise<Paginated<AssignmentActivity>> {
+  const q = new URLSearchParams()
+  if (params?.page) q.set('page', String(params.page))
+  if (params?.limit) q.set('limit', String(params.limit))
+  if (params?.employee_id != null) q.set('employee_id', String(params.employee_id))
+  const qs = q.toString()
+  return apiFetch<Paginated<AssignmentActivity>>(`/api/v1/time/assignments/activity${qs ? `?${qs}` : ''}`, { method: 'GET' })
+}
+
 // Settings APIs
 export type ProfileOut = {
   id: number | string

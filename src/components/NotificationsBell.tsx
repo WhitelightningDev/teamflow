@@ -52,19 +52,30 @@ export default function NotificationsBell() {
           <ul className="max-h-72 overflow-auto">
             {isLoading && <li className="px-3 py-2 text-slate-500">Loading…</li>}
             {(!isLoading && items.length === 0) && <li className="px-3 py-2 text-slate-500">No notifications.</li>}
-            {items.map((n:any) => (
-              <li key={n.id} className={`px-3 py-2 flex items-start gap-2 ${n.read ? 'opacity-70' : ''}`}>
-                <span className="mt-1 inline-block h-2 w-2 rounded-full bg-blue-600" />
-                <div className="flex-1">
-                  <div className="text-sm">
-                    {n.type === 'announcement'
-                      ? `Announcement: ${n.payload?.title}`
-                      : `Leave ${n.payload?.status || n.type}${n.payload?.status === 'rejected' && n.payload?.comment ? ` — ${n.payload.comment}` : ''}`}
+            {items.map((n:any) => {
+              let text: string
+              if (n.type === 'announcement') {
+                text = `Announcement: ${n.payload?.title}`
+              } else if (n.type === 'job_assignment') {
+                const act = (n.payload?.action || '').toLowerCase()
+                const job = n.payload?.job_name || (n.payload?.job_id ? `Job #${n.payload.job_id}` : 'a job')
+                text = act === 'unassigned' ? `Unassigned from ${job}` : `Assigned to ${job}`
+              } else {
+                // Leave notifications (requested/status)
+                const status = n.payload?.status || n.type
+                const extra = n.payload?.status === 'rejected' && n.payload?.comment ? ` — ${n.payload.comment}` : ''
+                text = `Leave ${status}${extra}`
+              }
+              return (
+                <li key={n.id} className={`px-3 py-2 flex items-start gap-2 ${n.read ? 'opacity-70' : ''}`}>
+                  <span className="mt-1 inline-block h-2 w-2 rounded-full bg-blue-600" />
+                  <div className="flex-1">
+                    <div className="text-sm">{text}</div>
+                    <div className="text-xs text-slate-500">{new Date(n.created_at).toLocaleString()}</div>
                   </div>
-                  <div className="text-xs text-slate-500">{new Date(n.created_at).toLocaleString()}</div>
-                </div>
-              </li>
-            ))}
+                </li>
+              )
+            })}
           </ul>
         </div>
       )}
