@@ -43,6 +43,7 @@ export default function AdminDashboard() {
     done: CompanyAssignment[]
     canceled: CompanyAssignment[]
   }>({ assigned: [], in_progress: [], done: [], canceled: [] })
+  const [cancelReasons, setCancelReasons] = useState<Record<string, { label: string; note?: string }>>({})
   const [viewing, setViewing] = useState<{ job_id: string; employee_id: string } | null>(null)
   const [details, setDetails] = useState<any | null>(null)
   const [detailsLoading, setDetailsLoading] = useState(false)
@@ -90,6 +91,24 @@ export default function AdminDashboard() {
           done: done.items,
           canceled: canceled.items,
         })
+        // Preload cancel/abandon reasons for canceled assignments
+        try {
+          const entries = await Promise.allSettled(
+            (canceled.items || []).slice(0, 10).map(async (a) => {
+              const det = await getAssignmentDetails(String(a.job_id), String(a.employee_id))
+              const last = [...(det.timeline || [])].reverse().find((t) => ['canceled', 'abandoned', 'unassigned'].includes(String(t.action)))
+              if (!last) return null
+              return { key: `${a.job_id}-${a.employee_id}`, label: String(last.action), note: last.note || undefined }
+            })
+          )
+          if (!cancelled) {
+            const rec: Record<string, { label: string; note?: string }> = {}
+            for (const e of entries) {
+              if (e.status === 'fulfilled' && e.value && e.value.key) rec[e.value.key] = { label: e.value.label, note: e.value.note }
+            }
+            setCancelReasons(rec)
+          }
+        } catch {}
       } finally {
         if (!cancelled) setAssignmentsLoading(false)
       }
@@ -236,7 +255,7 @@ export default function AdminDashboard() {
       {FeatureFlags.DASHBOARD_SCORECARDS ? <ScorecardsWidget /> : null}
 
       {/* Assignments by State */}
-      <section className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 p-6 shadow-sm">
+      <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-white/80 dark:bg-neutral-900/70 p-6 shadow-sm backdrop-blur">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Assignments by State</h2>
           <Link to="/time/jobs" className="text-sm text-blue-600 hover:underline">Manage jobs</Link>
@@ -264,26 +283,51 @@ export default function AdminDashboard() {
                 { key: 'canceled', title: 'Canceled/Abandoned', items: assignByState.canceled },
               ] as { key: string; title: string; items: CompanyAssignment[] }[]
             ).map(({ key, title, items }) => (
-              <div key={key} className="rounded-xl border border-black/5 dark:border-white/10 p-4">
+              <div key={key} className={`rounded-2xl p-4 ring-1 ring-black/5 dark:ring-white/10 ${
+                key === 'done' ? 'bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-900/10 dark:to-transparent' :
+                key === 'in_progress' ? 'bg-gradient-to-br from-blue-50 to-white dark:from-blue-900/10 dark:to-transparent' :
+                key === 'canceled' ? 'bg-gradient-to-br from-rose-50 to-white dark:from-rose-900/10 dark:to-transparent' :
+                'bg-gradient-to-br from-slate-50 to-white dark:from-slate-800/30 dark:to-transparent'
+              }`}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium">{title}</span>
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${
+                    key === 'done' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200' :
+                    key === 'in_progress' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200' :
+                    key === 'canceled' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-200' :
+                    'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200'
+                  }`}>{items.length}</span>
                 </div>
                 {items.length === 0 ? (
                   <div className="text-sm text-slate-500">None</div>
                 ) : (
                   <ul className="space-y-2 text-sm">
                     {items.map((a) => (
-                      <li key={`${a.job_id}-${a.employee_id}`} className="rounded-lg border border-black/5 dark:border-white/10 px-3 py-2">
-                        <div className="flex items-center justify-between">
+                      <li key={`${a.job_id}-${a.employee_id}`} className="rounded-xl border border-black/5 dark:border-white/10 px-3 py-2 bg-white/70 dark:bg-neutral-900/70">
+                        <div className="flex items-start gap-3">
+                          <div className={`mt-1 h-2 w-2 rounded-full ${
+                            key === 'done' ? 'bg-emerald-500' : key === 'in_progress' ? 'bg-blue-500' : key === 'canceled' ? 'bg-rose-500' : 'bg-slate-400'
+                          }`} />
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium truncate">{a.job_name || `Job #${a.job_id}`}{a.client_name ? ` — ${a.client_name}` : ''}</div>
-                            <div className="text-xs text-slate-500 truncate">{a.employee_name || `Employee #${a.employee_id}`}</div>
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="truncate">
+                                <div className="font-medium truncate">{a.job_name || `Job #${a.job_id}`}</div>
+                                <div className="text-xs text-slate-500 truncate">{a.client_name ? `${a.client_name} • ` : ''}{a.employee_name || `Employee #${a.employee_id}`}</div>
+                              </div>
+                              <button onClick={() => setViewing({ job_id: String(a.job_id), employee_id: String(a.employee_id) })} className="shrink-0 rounded-md border border-black/10 dark:border-white/15 px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10">Details</button>
+                            </div>
+                            <div className="mt-1 text-xs text-slate-500">
+                              {a.last_activity_at ? new Date(a.last_activity_at).toLocaleDateString() : ''}
+                            </div>
+                            {key === 'canceled' && (
+                              (() => { const r = cancelReasons[`${a.job_id}-${a.employee_id}`]; return (
+                                <div className="mt-1 text-xs text-rose-600 dark:text-rose-300">
+                                  {r ? `${r.label.charAt(0).toUpperCase()}${r.label.slice(1)}${r.note ? ` — ${r.note}` : ''}` : 'Reason unavailable'}
+                                </div>
+                              )})()
+                            )}
                           </div>
-                          <button onClick={() => setViewing({ job_id: String(a.job_id), employee_id: String(a.employee_id) })} className="ml-2 rounded-md border border-black/10 dark:border-white/15 px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10">Details</button>
                         </div>
-                        {a.last_activity && (
-                          <div className="mt-1 text-xs text-slate-500">{a.last_activity_at ? new Date(a.last_activity_at).toLocaleDateString() : ''}</div>
-                        )}
                       </li>
                     ))}
                   </ul>
@@ -298,8 +342,8 @@ export default function AdminDashboard() {
       {viewing && (
         <div className="fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/40" onClick={() => { setViewing(null); setDetails(null) }} />
-          <div className="absolute inset-x-0 top-[6%] mx-auto max-w-4xl rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 shadow-lg">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-black/5 dark:border-white/10">
+          <div className="absolute inset-x-0 top-8 sm:top-12 mx-4 sm:mx-auto max-w-4xl w-[calc(100%-2rem)] sm:w-auto rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 shadow-lg max-h-[85vh] overflow-y-auto overscroll-contain">
+            <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b border-black/5 dark:border-white/10 bg-white/95 dark:bg-neutral-900/95 backdrop-blur">
               <div className="text-sm">
                 <div className="font-semibold">Assignment Details</div>
                 {details && (
@@ -314,79 +358,118 @@ export default function AdminDashboard() {
               {detailsLoading ? (
                 <div className="text-sm text-slate-500">Loading…</div>
               ) : details ? (
-                <div className="space-y-4 text-sm">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="rounded-lg border border-black/5 dark:border-white/10 p-3">
-                      <div className="text-xs text-slate-500">Assignment</div>
-                      <div className="mt-1">State: <span className="font-medium">{details.assignment?.state}</span></div>
-                      {details.assignment?.state_changed_at && <div className="text-slate-500">Changed: {new Date(details.assignment.state_changed_at).toLocaleString()}</div>}
-                    </div>
-                    <div className="rounded-lg border border-black/5 dark:border-white/10 p-3">
-                      <div className="text-xs text-slate-500">Totals</div>
-                      <div className="mt-1">Entries: {details.totals?.entries}</div>
-                      <div>Minutes: {details.totals?.minutes}m (Break {details.totals?.break_minutes}m • Paused {details.totals?.paused_minutes}m)</div>
-                      <div>Amount: R{Number(details.totals?.amount || 0).toFixed(2)}</div>
-                    </div>
-                    <div className="rounded-lg border border-black/5 dark:border-white/10 p-3">
-                      <div className="text-xs text-slate-500">Job</div>
-                      <div className="mt-1">{details.job?.name || details.job?.id}</div>
-                      {details.job?.client_name && <div className="text-slate-500">Client: {details.job.client_name}</div>}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <div className="font-semibold mb-2">Timeline</div>
-                      {details.timeline?.length ? (
-                        <ul className="space-y-2">
-                          {details.timeline.map((ev: any, idx: number) => (
-                            <li key={idx} className="rounded-lg border border-black/5 dark:border-white/10 px-3 py-2">
-                              <div className="flex items-center justify-between">
-                                <div className="font-medium">{ev.action}</div>
-                                <div className="text-xs text-slate-500">{ev.created_at ? new Date(ev.created_at).toLocaleString() : ''}</div>
-                              </div>
-                              {(ev.actor_name || ev.note) && (
-                                <div className="mt-1 text-xs text-slate-500">{ev.actor_name ? `By ${ev.actor_name}` : ''}{ev.actor_name && ev.note ? ' • ' : ''}{ev.note || ''}</div>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : <div className="text-slate-500 text-sm">No activity.</div>}
-                    </div>
-                    <div>
-                      <div className="font-semibold mb-2">Entries</div>
-                      {details.entries?.length ? (
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-xs rounded border border-black/5 dark:border-white/10">
-                            <thead className="bg-slate-50/80 dark:bg-neutral-800/50">
-                              <tr>
-                                <th className="px-2 py-1 text-left">Start</th>
-                                <th className="px-2 py-1 text-left">End</th>
-                                <th className="px-2 py-1 text-left">Break</th>
-                                <th className="px-2 py-1 text-left">Paused</th>
-                                <th className="px-2 py-1 text-left">Duration</th>
-                                <th className="px-2 py-1 text-left">State</th>
-                                <th className="px-2 py-1 text-left">Reason</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-black/5 dark:divide-white/10">
-                              {details.entries.map((e: any) => (
-                                <tr key={e.id}>
-                                  <td className="px-2 py-1">{e.start_ts ? new Date(e.start_ts).toLocaleString() : ''}</td>
-                                  <td className="px-2 py-1">{e.end_ts ? new Date(e.end_ts).toLocaleString() : (e.is_active ? '—' : '')}</td>
-                                  <td className="px-2 py-1">{e.break_minutes}m</td>
-                                  <td className="px-2 py-1">{e.paused_minutes || 0}m</td>
-                                  <td className="px-2 py-1">{e.duration_minutes != null ? `${e.duration_minutes}m` : (e.is_active ? 'running' : '—')}</td>
-                                  <td className="px-2 py-1">{e.state}</td>
-                                  <td className="px-2 py-1">{e.state === 'paused' ? e.pause_reason : e.state === 'abandoned' ? (e.abandoned_reason || '—') : (e.note || '—')}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                (() => {
+                  const st = String(details.assignment?.state || 'assigned')
+                  const headerCls = st === 'done'
+                    ? 'from-emerald-50 via-emerald-100/40 to-transparent dark:from-emerald-900/20'
+                    : st === 'in_progress'
+                    ? 'from-blue-50 via-blue-100/40 to-transparent dark:from-blue-900/20'
+                    : st === 'canceled'
+                    ? 'from-rose-50 via-rose-100/40 to-transparent dark:from-rose-900/20'
+                    : 'from-slate-50 via-slate-100/40 to-transparent dark:from-slate-800/30'
+                  const badge = st === 'done'
+                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200'
+                    : st === 'in_progress'
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200'
+                    : st === 'canceled'
+                    ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-200'
+                    : 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200'
+                  const reasonEv = [...(details.timeline || [])].reverse().find((t: any) => ['canceled', 'abandoned', 'unassigned'].includes(String(t.action)))
+                  const reasonText = reasonEv ? `${String(reasonEv.action).charAt(0).toUpperCase()}${String(reasonEv.action).slice(1)}${reasonEv.note ? ' — ' + reasonEv.note : ''}` : ''
+                  return (
+                    <div className="space-y-5 text-sm">
+                      {/* Header */}
+                      <div className={`rounded-xl ring-1 ring-black/5 dark:ring-white/10 p-4 bg-gradient-to-r ${headerCls}`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-xs text-slate-500">Job</div>
+                            <div className="text-base font-semibold truncate">{details.job?.name || details.job?.id}</div>
+                            <div className="text-xs text-slate-500 truncate">Employee: {details.employee?.name || details.employee?.id}</div>
+                          </div>
+                          <span className={`shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-xs ${badge}`}>{st.replace('_', ' ')}</span>
                         </div>
-                      ) : <div className="text-slate-500 text-sm">No entries.</div>}
+                        {reasonText && (
+                          <div className="mt-2 text-xs text-rose-600 dark:text-rose-300">{reasonText}</div>
+                        )}
+                        {details.assignment?.state_changed_at && (
+                          <div className="mt-1 text-xs text-slate-500">Updated {new Date(details.assignment.state_changed_at).toLocaleString()}</div>
+                        )}
+                      </div>
+
+                      {/* Quick stats */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <StatSmall label="Entries" value={String(details.totals?.entries ?? 0)} />
+                        <StatSmall label="Minutes" value={`${details.totals?.minutes ?? 0}m`} />
+                        <StatSmall label="Paused" value={`${details.totals?.paused_minutes ?? 0}m`} />
+                        <StatSmall label="Amount" value={`R${Number(details.totals?.amount || 0).toFixed(2)}`} />
+                      </div>
+
+                      {/* Body */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Timeline */}
+                        <div>
+                          <div className="font-semibold mb-2">Timeline</div>
+                          {details.timeline?.length ? (
+                            <ul className="relative pl-4 before:absolute before:left-1 before:top-0 before:bottom-0 before:w-px before:bg-black/10 dark:before:bg-white/10">
+                              {details.timeline.map((ev: any, idx: number) => {
+                                const color = ev.action === 'done' ? 'bg-emerald-500' : ev.action === 'started' ? 'bg-blue-500' : ev.action === 'canceled' ? 'bg-rose-500' : ev.action === 'abandoned' ? 'bg-rose-500' : 'bg-slate-400'
+                                return (
+                                  <li key={idx} className="relative py-2">
+                                    <span className={`absolute left-0 top-3 h-2 w-2 rounded-full ${color}`} />
+                                    <div className="ml-3">
+                                      <div className="flex items-center justify-between">
+                                        <div className="font-medium capitalize">{String(ev.action).replace('_',' ')}</div>
+                                        <div className="text-xs text-slate-500">{ev.created_at ? new Date(ev.created_at).toLocaleString() : ''}</div>
+                                      </div>
+                                      {(ev.actor_name || ev.note) && (
+                                        <div className="mt-1 text-xs text-slate-500">{ev.actor_name ? `By ${ev.actor_name}` : ''}{ev.actor_name && ev.note ? ' • ' : ''}{ev.note || ''}</div>
+                                      )}
+                                    </div>
+                                  </li>
+                                )
+                              })}
+                            </ul>
+                          ) : <div className="text-slate-500 text-sm">No activity.</div>}
+                        </div>
+
+                        {/* Entries */}
+                        <div>
+                          <div className="font-semibold mb-2">Entries</div>
+                          {details.entries?.length ? (
+                            <div className="overflow-x-auto rounded-xl ring-1 ring-black/5 dark:ring-white/10">
+                              <table className="w-full text-xs">
+                                <thead className="bg-slate-50/80 dark:bg-neutral-800/50">
+                                  <tr>
+                                    <th className="px-2 py-1 text-left">Start</th>
+                                    <th className="px-2 py-1 text-left">End</th>
+                                    <th className="px-2 py-1 text-left">Break</th>
+                                    <th className="px-2 py-1 text-left">Paused</th>
+                                    <th className="px-2 py-1 text-left">Duration</th>
+                                    <th className="px-2 py-1 text-left">State</th>
+                                    <th className="px-2 py-1 text-left">Reason</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-black/5 dark:divide-white/10">
+                                  {details.entries.map((e: any) => (
+                                    <tr key={e.id}>
+                                      <td className="px-2 py-1">{e.start_ts ? new Date(e.start_ts).toLocaleString() : ''}</td>
+                                      <td className="px-2 py-1">{e.end_ts ? new Date(e.end_ts).toLocaleString() : (e.is_active ? '—' : '')}</td>
+                                      <td className="px-2 py-1">{e.break_minutes}m</td>
+                                      <td className="px-2 py-1">{e.paused_minutes || 0}m</td>
+                                      <td className="px-2 py-1">{e.duration_minutes != null ? `${e.duration_minutes}m` : (e.is_active ? 'running' : '—')}</td>
+                                      <td className="px-2 py-1 capitalize">{String(e.state).replace('_',' ')}</td>
+                                      <td className="px-2 py-1">{e.state === 'paused' ? e.pause_reason : e.state === 'abandoned' ? (e.abandoned_reason || '—') : (e.note || '—')}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : <div className="text-slate-500 text-sm">No entries.</div>}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  )
+                })()
               ) : (
                 <div className="text-sm text-slate-500">No details.</div>
               )}
@@ -411,3 +494,12 @@ function UsersIcon({ className = '' }: { className?: string }) { return (<svg vi
 function CalendarIcon({ className = '' }: { className?: string }) { return (<svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1m10 5H7v2h10zM4 10v9a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-9z" /></svg>) }
 function FileIcon({ className = '' }: { className?: string }) { return (<svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden><path d="M6 2h7l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m7 1.5V8h4.5" /></svg>) }
 function SunIcon({ className = '' }: { className?: string }) { return (<svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden><path d="M12 7a5 5 0 1 1-5 5 5 5 0 0 1 5-5m0-5h1v3h-1zm0 17h1v3h-1zM1 11h3v1H1zm19 0h3v1h-3zM4.22 4.22l.71-.71 2.12 2.12-.71.71zM16.95 16.95l.71-.71 2.12 2.12-.71.71zM4.22 19.78l2.12-2.12.71.71-2.12 2.12zM16.95 7.05l2.12-2.12.71.71-2.12 2.12z" /></svg>) }
+
+function StatSmall({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg ring-1 ring-black/5 dark:ring-white/10 p-3 bg-white/70 dark:bg-neutral-900/60">
+      <div className="text-xs text-slate-500">{label}</div>
+      <div className="text-lg font-semibold">{value}</div>
+    </div>
+  )
+}
