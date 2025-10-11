@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Breadcrumbs from '../../components/Breadcrumbs'
+import { useAlerts } from '../../components/AlertsProvider'
 import { listLeaves, updateLeaveStatus, createLeave, uploadDocument, getUser, type LeaveOut } from '../../lib/api'
 
 type Status = 'Requested' | 'Approved' | 'Rejected'
 type UILeave = { id: number | string; employee: string; type: string; startDate: string; endDate: string; status: Status; comment?: string }
 
 export default function LeavesPage() {
+  const alerts = useAlerts()
   const role = (getUser() as any)?.role || 'employee'
   const canModerate = ['admin','manager','hr','supervisor'].includes(role)
   const canApply = ['employee','staff'].includes(role)
@@ -243,7 +245,7 @@ export default function LeavesPage() {
                     if (!f) return
                     try {
                       await uploadDocument(f, { leave_id: createdLeaveId, category: 'leave' })
-                      alert('Document uploaded')
+                      alerts.success('Document uploaded')
                     } catch (err: any) {
                       alert(err?.message || 'Upload failed')
                     }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { listJobs, type JobOut, listMyTimeEntriesApi, type Paginated, type TimeEntryOut, clockInApi, breakStartApi, breakEndApi, clockOutApi, createManualEntryApi, getUser } from '../../lib/api'
+import { listJobs, type JobOut, listMyTimeEntriesApi, type Paginated, type TimeEntryOut, clockInApi, breakStartApi, breakEndApi, clockOutApi, createManualEntryApi, getUser, pauseJobApi, resumeJobApi, abandonJobApi } from '../../lib/api'
 import Breadcrumbs from '../../components/Breadcrumbs'
 import { Skeleton } from '@heroui/react'
 
@@ -34,6 +34,7 @@ export default function TimesheetsPage() {
     return j ? j.name : String(id)
   }
   const onBreak = !!activeEntry?.on_break
+  const onPause = !!activeEntry?.on_pause
   const role = ((getUser() as any)?.role) || 'employee'
   const isAdminLike = ['admin','manager','hr'].includes(role)
 
@@ -54,6 +55,24 @@ export default function TimesheetsPage() {
   }
   async function onClockOut() {
     try { await clockOutApi(); await load() } catch (e: any) { alert(e?.message || 'Clock-out failed') }
+  }
+  async function onPauseClick() {
+    const reason = window.prompt('Reason for pausing? (optional)') || undefined
+    let resume_at: string | undefined
+    const plan = window.prompt('Planned resume time? (optional, e.g., 2025-10-11 14:30)')
+    if (plan && plan.trim()) {
+      const parsed = new Date(plan)
+      if (!isNaN(parsed.getTime())) resume_at = parsed.toISOString()
+    }
+    try { await pauseJobApi({ reason, resume_at }); await load() } catch (e: any) { alert(e?.message || 'Failed to pause job') }
+  }
+  async function onResumeClick() {
+    try { await resumeJobApi(); await load() } catch (e: any) { alert(e?.message || 'Failed to resume job') }
+  }
+  async function onAbandonClick() {
+    const reason = window.prompt('Reason for abandoning? (required)')
+    if (!reason || !reason.trim()) { alert('A reason is required.'); return }
+    try { await abandonJobApi({ reason: reason.trim() }); await load() } catch (e: any) { alert(e?.message || 'Failed to abandon job') }
   }
 
   // Manual entry form state
@@ -103,15 +122,23 @@ export default function TimesheetsPage() {
         ) : activeEntry ? (
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="text-sm">
-              <div>Active on job <span className="font-medium">{jobName(activeEntry.job_id)}</span></div>
-              <div className="text-slate-500">Started at {activeEntry.start_ts ? new Date(activeEntry.start_ts).toLocaleString() : '—'} • Break: {activeEntry.break_minutes} min</div>
+              <div>{onPause ? 'Paused on' : 'Active on'} job <span className="font-medium">{jobName(activeEntry.job_id)}</span></div>
+              <div className="text-slate-500">Started at {activeEntry.start_ts ? new Date(activeEntry.start_ts).toLocaleString() : '—'} • Break: {activeEntry.break_minutes} min{activeEntry.paused_minutes != null ? ` • Paused: ${activeEntry.paused_minutes} min` : ''}{activeEntry.planned_resume_at ? ` • Resume: ${new Date(activeEntry.planned_resume_at).toLocaleString()}` : ''}</div>
             </div>
-            <div className="flex gap-2">
-              {!onBreak ? (
-                <button onClick={onBreakStart} className="rounded-lg border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10">Start Break</button>
-              ) : (
-                <button onClick={onBreakEnd} className="rounded-lg border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10">End Break</button>
+            <div className="flex flex-wrap gap-2">
+              {!onPause && (
+                !onBreak ? (
+                  <button onClick={onBreakStart} className="rounded-lg border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10">Start Break</button>
+                ) : (
+                  <button onClick={onBreakEnd} className="rounded-lg border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10">End Break</button>
+                )
               )}
+              {!onPause ? (
+                <button onClick={onPauseClick} className="rounded-lg border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10">Pause Job</button>
+              ) : (
+                <button onClick={onResumeClick} className="rounded-lg border border-black/10 dark:border-white/15 px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/10">Resume Job</button>
+              )}
+              <button onClick={onAbandonClick} className="rounded-lg border text-rose-600 border-rose-200 dark:border-rose-900/40 px-3 py-1.5 hover:bg-rose-50 dark:hover:bg-rose-900/20">Abandon</button>
               <button onClick={onClockOut} className="rounded-lg bg-blue-600 text-white px-3 py-1.5 font-medium shadow-sm hover:bg-blue-700">Clock Out</button>
             </div>
           </div>
@@ -123,7 +150,7 @@ export default function TimesheetsPage() {
                 <option key={j.id} value={String(j.id)}>{j.name}{j.client_name ? ` – ${j.client_name}` : ''} • R{j.default_rate.toFixed(2)}/h</option>
               ))}
             </select>
-            <button onClick={onClockIn} className="rounded-lg bg-blue-600 text-white px-3 py-1.5 font-medium shadow-sm hover:bg-blue-700">Clock In</button>
+            <button onClick={onClockIn} className="rounded-lg bg-blue-600 text-white px-3 py-1.5 font-medium shadow-sm hover:bg-blue-700">Start Job</button>
           </div>
         ) : (
           <div className="text-sm text-slate-600">No jobs available to clock into. {isAdminLike ? (<a className="text-blue-600 hover:underline" href="/time/jobs">Create job types</a>) : 'Please ask an admin to add job types.'}</div>
@@ -192,6 +219,7 @@ export default function TimesheetsPage() {
                 <th className="px-3 py-2 text-left">Start</th>
                 <th className="px-3 py-2 text-left">End</th>
                 <th className="px-3 py-2 text-left">Break</th>
+                <th className="px-3 py-2 text-left">Paused</th>
                 <th className="px-3 py-2 text-left">Duration</th>
                 <th className="px-3 py-2 text-left">Amount</th>
                 <th className="px-3 py-2 text-left">Status</th>
@@ -204,9 +232,10 @@ export default function TimesheetsPage() {
                   <td className="px-3 py-2">{r.start_ts ? new Date(r.start_ts).toLocaleString() : '—'}</td>
                   <td className="px-3 py-2">{r.end_ts ? new Date(r.end_ts).toLocaleString() : (r.is_active ? '—' : '—')}</td>
                   <td className="px-3 py-2">{r.break_minutes}m</td>
+                  <td className="px-3 py-2">{r.paused_minutes != null ? `${r.paused_minutes}m` : '0m'}</td>
                   <td className="px-3 py-2">{r.duration_minutes != null ? `${r.duration_minutes}m` : (r.is_active ? 'running' : '—')}</td>
                   <td className="px-3 py-2">{r.amount != null ? `R${Number(r.amount).toFixed(2)}` : (r.rate ? `R${Number(r.rate).toFixed(2)}/h` : '—')}</td>
-                  <td className="px-3 py-2">{r.is_active ? (r.on_break ? 'On Break' : 'Active') : 'Done'}</td>
+                  <td className="px-3 py-2">{r.is_active ? (r.on_pause ? 'Paused' : (r.on_break ? 'On Break' : 'Active')) : (r.state === 'abandoned' ? 'Abandoned' : 'Done')}</td>
                 </tr>
               ))}
             </tbody>

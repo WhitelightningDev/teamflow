@@ -7,10 +7,12 @@ import AddEmployee from './components/AddEmployee'
 import EmployeeView from './components/EmployeeView'
 import EmployeeEdit from './components/EmployeeEdit'
 import { getUser } from '../../lib/api'
+import { useAlerts } from '../../components/AlertsProvider'
 
 type UIEmployee = { id: string | number; name: string; role: string; status: 'Active' | 'Inactive' }
 
 export default function EmployeesPage() {
+  const alerts = useAlerts()
   const role = (getUser() as any)?.role || 'employee'
   const canInvite = ['admin','manager','hr','supervisor'].includes(role)
   const [query, setQuery] = useState('')
@@ -133,7 +135,7 @@ export default function EmployeesPage() {
                     <div className="flex items-center gap-2 justify-end">
                       {canInvite && (
                       <button
-                        onClick={async () => { try { const r = await inviteEmployee(e.id); alert(`Invite sent to ${r.email}`) } catch (err: any) { alert(err?.message || 'Invite failed') } }}
+                        onClick={async () => { try { const r = await inviteEmployee(e.id); alerts.success(`Invite sent to ${r.email}`) } catch (err: any) { alert(err?.message || 'Invite failed') } }}
                         className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10"
                       >Invite</button>) }
                       <button onClick={() => removeEmployee(e.id)} className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Delete</button>
@@ -179,7 +181,7 @@ export default function EmployeesPage() {
                 >
                   Details
                 </button>
-                <button onClick={async () => { try { const r = await inviteEmployee(e.id); alert(`Invite sent to ${r.email}`) } catch (err: any) { alert(err?.message || 'Invite failed') } }} className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Invite</button>
+                <button onClick={async () => { try { const r = await inviteEmployee(e.id); alerts.success(`Invite sent to ${r.email}`) } catch (err: any) { alert(err?.message || 'Invite failed') } }} className="rounded-md border border-black/10 dark:border-white/15 px-2.5 py-1 hover:bg-black/5 dark:hover:bg-white/10">Invite</button>
               </div>
             </div>
           ))}
