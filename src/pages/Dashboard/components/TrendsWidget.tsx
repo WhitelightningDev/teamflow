@@ -25,13 +25,14 @@ function Sparkline({ points, width = 260, height = 60 }: { points: { x: number; 
 export default function TrendsWidget() {
   const [series, setSeries] = useState<TrendSeries[]>([])
   const [loading, setLoading] = useState(true)
+  const [window, setWindow] = useState<'6m' | '3m' | '1m' | '7d'>('6m')
 
   useEffect(() => {
     let cancelled = false
     async function load() {
       setLoading(true)
       try {
-        const res = await dashboardTrends(6)
+        const res = await dashboardTrends({ window })
         if (!cancelled) setSeries(res)
       } finally {
         if (!cancelled) setLoading(false)
@@ -39,7 +40,7 @@ export default function TrendsWidget() {
     }
     load()
     return () => { cancelled = true }
-  }, [])
+  }, [window])
 
   const pts = useMemo(() => {
     const s = series[0]
@@ -59,10 +60,14 @@ export default function TrendsWidget() {
     <section className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 p-6 shadow-sm">
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-lg font-semibold">Headcount Trend</h2>
-        <div className="text-xs text-slate-500">Last 6 months</div>
+        <div className="flex items-center gap-2 text-xs">
+          <button onClick={() => setWindow('6m')} className={`rounded px-2 py-1 border ${window==='6m' ? 'bg-blue-600 text-white border-blue-600' : 'border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10'}`}>6m</button>
+          <button onClick={() => setWindow('3m')} className={`rounded px-2 py-1 border ${window==='3m' ? 'bg-blue-600 text-white border-blue-600' : 'border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10'}`}>3m</button>
+          <button onClick={() => setWindow('1m')} className={`rounded px-2 py-1 border ${window==='1m' ? 'bg-blue-600 text-white border-blue-600' : 'border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10'}`}>1m</button>
+          <button onClick={() => setWindow('7d')} className={`rounded px-2 py-1 border ${window==='7d' ? 'bg-blue-600 text-white border-blue-600' : 'border-black/10 dark:border-white/15 hover:bg-black/5 dark:hover:bg-white/10'}`}>7d</button>
+        </div>
       </div>
       <Sparkline points={pts} />
     </section>
   )
 }
-
