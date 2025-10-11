@@ -4,6 +4,12 @@ import { Link } from 'react-router-dom'
 import { listEmployees, listLeaves, listDocuments, getUser, updateLeaveStatus } from '../../lib/api'
 import SummarySkeleton from '../../components/SummarySkeleton'
 import { listCompanyAssignmentsApi, type CompanyAssignment } from '../../lib/api'
+import { FeatureFlags } from '../../lib/featureFlags'
+import AlertsWidget from './components/AlertsWidget'
+import TrendsWidget from './components/TrendsWidget'
+import ScorecardsWidget from './components/ScorecardsWidget'
+import DrilldownModal from './components/DrilldownModal'
+import ExportButton from './components/ExportButton'
 
 type SummaryCard = {
   key: string
@@ -29,6 +35,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [assignments, setAssignments] = useState<CompanyAssignment[]>([])
   const [assignmentsLoading, setAssignmentsLoading] = useState(true)
+  const [drillMetric, setDrillMetric] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -104,8 +111,11 @@ export default function AdminDashboard() {
         <h1 className="text-2xl sm:text-3xl font-bold">Welcome, {userName}</h1>
         <div className="flex gap-2">
           <Link to="/employees" className="rounded-lg bg-blue-600 !text-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-blue-700 hover:!text-white">Invite Employee</Link>
+          {FeatureFlags.DASHBOARD_EXPORT ? <ExportButton /> : null}
         </div>
       </header>
+
+      {FeatureFlags.DASHBOARD_ALERTS ? <AlertsWidget /> : null}
 
       {/* KPIs */}
       {loading ? (
@@ -113,7 +123,16 @@ export default function AdminDashboard() {
       ) : (
         <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           {summary.map(({ key, label, value, sublabel, color, Icon }) => (
-            <div key={key} className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 p-6 shadow-sm">
+            <div
+              key={key}
+              className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 p-6 shadow-sm"
+              onClick={() => {
+                if (FeatureFlags.DASHBOARD_DRILLDOWN && key === 'pending') setDrillMetric('pending_leaves')
+              }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' && FeatureFlags.DASHBOARD_DRILLDOWN && key === 'pending') setDrillMetric('pending_leaves') }}
+            >
               <div className="flex items-center gap-3">
                 <div className={`h-10 w-10 rounded-lg bg-black/5 dark:bg-white/10 flex items-center justify-center ${color}`}>
                   <Icon className="h-5 w-5" />
@@ -128,6 +147,8 @@ export default function AdminDashboard() {
           ))}
         </section>
       )}
+
+      {FeatureFlags.DASHBOARD_TRENDS ? <TrendsWidget /> : null}
 
       {/* Pending Actions */}
       <section className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 p-6 shadow-sm">
@@ -156,7 +177,7 @@ export default function AdminDashboard() {
       <section className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 p-6 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">Recent Activity</h2>
-          <Link to="#" className="text-sm text-blue-600 hover:underline">View all</Link>
+          <Link to="/activity" className="text-sm text-blue-600 hover:underline">View all</Link>
         </div>
         {recent.length === 0 ? (
           <div className="text-sm text-slate-500">No recent activity.</div>
@@ -173,6 +194,8 @@ export default function AdminDashboard() {
           </ul>
         )}
       </section>
+
+      {FeatureFlags.DASHBOARD_SCORECARDS ? <ScorecardsWidget /> : null}
 
       {/* Assigned Jobs Snapshot */}
       <section className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 p-6 shadow-sm">
@@ -214,6 +237,9 @@ export default function AdminDashboard() {
           </ul>
         )}
       </section>
+      {FeatureFlags.DASHBOARD_DRILLDOWN && drillMetric ? (
+        <DrilldownModal metric={drillMetric} onClose={() => setDrillMetric(null)} />
+      ) : null}
     </div>
   )
 }
