@@ -21,6 +21,7 @@ import JobsPage from './pages/Time/Jobs'
 import BillingPage from './pages/Time/Billing'
 import RequireAuth from './lib/auth/RequireAuth'
 import BookDemoPage from './pages/BookDemo'
+import RecentActivityPage from './pages/Activity'
 
 export default function AppRouter() {
   return (
@@ -39,6 +40,7 @@ export default function AppRouter() {
         <Route path="/announcements" element={<AnnouncementsList />} />
         <Route path="/announcements/new" element={<RequireRole allow={["admin","manager","hr"]}><AnnouncementsCreate /></RequireRole>} />
         <Route path="/documents" element={<DocumentsPage />} />
+        <Route path="/activity" element={<RequireRole allow={["admin","manager","hr"]}><RecentActivityPage /></RequireRole>} />
         <Route path="/time" element={<RequireAuth><TimesheetsPage /></RequireAuth>} />
         <Route path="/time/jobs" element={<RequireRole allow={["admin","manager","hr"]}><RequireAuth><JobsPage /></RequireAuth></RequireRole>} />
         <Route path="/time/billing" element={<RequireRole allow={["admin","manager","hr"]}><RequireAuth><BillingPage /></RequireAuth></RequireRole>} />

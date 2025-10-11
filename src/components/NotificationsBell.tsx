@@ -1,18 +1,35 @@
 import { useEffect, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useNotifications } from '../hooks/useNotifications'
 
 export default function NotificationsBell() {
   const { data, isLoading, markRead, refetch } = useNotifications()
   const [open, setOpen] = useState(false)
+  const [tab, setTab] = useState<'new' | 'read'>('new')
   const ref = useRef<HTMLDivElement | null>(null)
+  const qc = useQueryClient()
   const items = data?.items || []
-  const unread = items.filter((n: any) => !n.read).length
+  const newItems = items.filter((n: any) => !n.read)
+  const readItems = items.filter((n: any) => n.read)
+  const unread = newItems.length
 
   async function markAll() {
-    const unreadItems = items.filter((n:any)=>!n.read)
-    if (unreadItems.length === 0) return
-    await Promise.all(unreadItems.map((n:any)=> markRead(n.id)))
-    await refetch()
+    const toMark = newItems
+    if (toMark.length === 0) return
+    // Optimistic UI: move all to Read immediately
+    const key = ['notifications'] as const
+    const prev = qc.getQueryData<{ items: any[]; total: number }>(key)
+    qc.setQueryData(key, (old: any) => {
+      if (!old) return old
+      return { ...old, items: old.items.map((n: any) => (n.read ? n : { ...n, read: true })) }
+    })
+    try {
+      await Promise.all(toMark.map((n: any) => markRead(n.id)))
+      await refetch()
+    } catch {
+      // rollback if something failed
+      if (prev) qc.setQueryData(key, prev)
+    }
   }
 
   // Close on outside click or Escape
@@ -47,12 +64,27 @@ export default function NotificationsBell() {
         <div id="notifications-popover" role="menu" className="absolute right-0 mt-2 w-80 rounded-lg border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 shadow-lg py-1 text-sm">
           <div className="flex items-center justify-between px-3 py-2 border-b border-black/5 dark:border-white/10">
             <span className="font-medium">Notifications</span>
-            <button onClick={markAll} className="text-xs text-blue-600 hover:underline">Mark all read</button>
+            {unread > 0 ? (
+              <button onClick={markAll} className="text-xs text-blue-600 hover:underline">Mark all read</button>
+            ) : (
+              <span className="text-xs text-slate-500">All caught up</span>
+            )}
+          </div>
+          {/* Tabs */}
+          <div className="px-3 pt-2 pb-1 flex items-center gap-1">
+            <button
+              className={`px-2.5 py-1 rounded-md text-xs ${tab==='new' ? 'bg-blue-600 text-white' : 'hover:bg-black/5 dark:hover:bg-white/10'}`}
+              onClick={() => setTab('new')}
+            >New</button>
+            <button
+              className={`px-2.5 py-1 rounded-md text-xs ${tab==='read' ? 'bg-blue-600 text-white' : 'hover:bg-black/5 dark:hover:bg-white/10'}`}
+              onClick={() => setTab('read')}
+            >Read</button>
           </div>
           <ul className="max-h-72 overflow-auto">
             {isLoading && <li className="px-3 py-2 text-slate-500">Loading…</li>}
             {(!isLoading && items.length === 0) && <li className="px-3 py-2 text-slate-500">No notifications.</li>}
-            {items.map((n:any) => {
+            {(tab === 'new' ? newItems : readItems).map((n:any) => {
               let text: string
               if (n.type === 'announcement') {
                 text = `Announcement: ${n.payload?.title}`
