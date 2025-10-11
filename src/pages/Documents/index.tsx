@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Breadcrumbs from '../../components/Breadcrumbs'
+import { useAlerts } from '../../components/AlertsProvider'
 import { listDocuments, uploadDocument, deleteDocument, type DocumentOut } from '../../lib/api'
 
 type Doc = { id: number | string; name: string; uploadedAt: string; owner?: string; category?: string }
 
 export default function DocumentsPage() {
+  const alerts = useAlerts()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -106,8 +108,8 @@ export default function DocumentsPage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button className="rounded-md border border-black/10 dark:border-white/15 px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10" onClick={() => alert('View not implemented')}>View</button>
-                  <button className="rounded-md border border-black/10 dark:border-white/15 px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10" onClick={() => alert('Download not implemented')}>Download</button>
+                  <button className="rounded-md border border-black/10 dark:border-white/15 px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10" onClick={() => alerts.success('Preview coming soon')}>View</button>
+                  <button className="rounded-md border border-black/10 dark:border-white/15 px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10" onClick={() => alerts.success('Download coming soon')}>Download</button>
                   <button onClick={async () => { try { await deleteDocument(d.id); setDocs((prev) => prev.filter((x) => x.id !== d.id)) } catch { alert('Delete failed') } }} className="rounded-md border border-black/10 dark:border-white/15 px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10 text-rose-600">Delete</button>
                 </div>
               </div>

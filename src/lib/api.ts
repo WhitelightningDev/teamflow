@@ -212,8 +212,13 @@ export type TimeEntryOut = {
   start_ts?: string
   end_ts?: string | null
   break_minutes: number
+  paused_minutes?: number
   is_active: boolean
   on_break: boolean
+  on_pause?: boolean
+  state?: 'active' | 'paused' | 'completed' | 'abandoned'
+  planned_resume_at?: string | null
+  pause_reason?: string | null
   duration_minutes?: number | null
   note?: string | null
   rate?: number | null
@@ -398,6 +403,18 @@ export async function clockOutApi(): Promise<TimeEntryOut> {
   return apiFetch<TimeEntryOut>(`/api/v1/time/entries/clock-out`, { method: 'POST' })
 }
 
+export async function pauseJobApi(body: { reason?: string; resume_at?: string }): Promise<TimeEntryOut> {
+  return apiFetch<TimeEntryOut>(`/api/v1/time/entries/pause`, { method: 'POST', body: JSON.stringify(body) })
+}
+
+export async function resumeJobApi(): Promise<TimeEntryOut> {
+  return apiFetch<TimeEntryOut>(`/api/v1/time/entries/resume`, { method: 'POST' })
+}
+
+export async function abandonJobApi(body: { reason?: string }): Promise<TimeEntryOut> {
+  return apiFetch<TimeEntryOut>(`/api/v1/time/entries/abandon`, { method: 'POST', body: JSON.stringify(body) })
+}
+
 export async function createManualEntryApi(payload: ManualTimeEntryIn): Promise<TimeEntryOut> {
   return apiFetch<TimeEntryOut>(`/api/v1/time/entries`, { method: 'POST', body: JSON.stringify(payload) })
 }
@@ -432,7 +449,7 @@ export type AssignmentActivity = {
   id: string | number
   job_id?: string | number | null
   job_name?: string | null
-  action: 'assigned' | 'started' | 'done' | 'canceled' | 'unassigned'
+  action: 'assigned' | 'started' | 'done' | 'canceled' | 'unassigned' | 'paused' | 'resumed' | 'abandoned'
   created_at: string
 }
 
@@ -532,6 +549,20 @@ export async function changePasswordApi(body: { current_password: string; new_pa
     method: 'POST',
     body: JSON.stringify(body),
   })
+}
+
+// Me profile (employee-scoped)
+export async function getMyEmployeeProfile(): Promise<{ user: AuthUser; employee: any }> {
+  return apiFetch<{ user: AuthUser; employee: any }>(`/api/v1/me/profile`, { method: 'GET' })
+}
+
+export async function updateMyEmployeeProfile(payload: Partial<{ phone: string; address: string; emergency_contact: any; province: string }>): Promise<{ status: string }> {
+  return apiFetch<{ status: string }>(`/api/v1/me/profile`, { method: 'PATCH', body: JSON.stringify(payload) })
+}
+
+// Lookups
+export async function listProvinces(): Promise<string[]> {
+  return apiFetch<string[]>(`/api/v1/lookups/provinces`, { method: 'GET' })
 }
 
 // Dashboard analytics APIs

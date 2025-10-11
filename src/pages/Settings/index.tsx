@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import Breadcrumbs from '../../components/Breadcrumbs'
 import { getCompany, updateCompany, getProfile, updateProfile, getNotifications, updateNotifications, changePasswordApi } from '../../lib/api'
+import { useAlerts } from '../../components/AlertsProvider'
 
 type Tab = 'Profile' | 'Account' | 'Notifications' | 'Security'
 
 export default function SettingsPage() {
+  const alerts = useAlerts()
   const [tab, setTab] = useState<Tab>('Profile')
 
   // Profile
@@ -57,7 +59,7 @@ export default function SettingsPage() {
       setError(null)
       await updateCompany({ name: companyName })
       await updateProfile({ email: contactEmail })
-      alert('Profile saved')
+      alerts.success('Profile saved')
     } catch (e: any) {
       setError(e?.message || 'Failed to save profile')
     } finally {
@@ -71,7 +73,7 @@ export default function SettingsPage() {
       setLoading(true)
       setError(null)
       await changePasswordApi({ current_password: currentPassword, new_password: newPassword })
-      alert('Password changed')
+      alerts.success('Password changed')
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
