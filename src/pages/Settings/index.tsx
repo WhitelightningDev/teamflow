@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import Breadcrumbs from '../../components/Breadcrumbs'
 import { getCompany, updateCompany, getProfile, updateProfile, getNotifications, updateNotifications, changePasswordApi } from '../../lib/api'
 import { useAlerts } from '../../components/AlertsProvider'
+import { Skeleton } from '@heroui/react'
 
 type Tab = 'Profile' | 'Account' | 'Notifications' | 'Security'
 
@@ -11,9 +12,12 @@ export default function SettingsPage() {
 
   // Profile
   const [companyName, setCompanyName] = useState('')
+  const [companyDomain, setCompanyDomain] = useState('')
+  const [companyTz, setCompanyTz] = useState('')
   const [contactEmail, setContactEmail] = useState('')
   const [logoFileName, setLogoFileName] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [pageLoading, setPageLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // Account / Security
@@ -30,7 +34,7 @@ export default function SettingsPage() {
   useEffect(() => {
     let cancelled = false
     async function load() {
-      setLoading(true)
+      setPageLoading(true)
       setError(null)
       try {
         const [company, profile, notifs] = await Promise.all([
@@ -40,13 +44,15 @@ export default function SettingsPage() {
         ])
         if (cancelled) return
         setCompanyName(company.name)
+        setCompanyDomain(company.domain)
+        setCompanyTz(company.timezone)
         setContactEmail(profile.email)
         setEmailNotifs(!!notifs.email_notifications)
         setAppNotifs(!!notifs.push_notifications)
       } catch (e: any) {
         if (!cancelled) setError(e?.message || 'Failed to load settings')
       } finally {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) setPageLoading(false)
       }
     }
     load()
@@ -57,7 +63,7 @@ export default function SettingsPage() {
     try {
       setLoading(true)
       setError(null)
-      await updateCompany({ name: companyName })
+      await updateCompany({ name: companyName, domain: companyDomain || undefined, timezone: companyTz || undefined })
       await updateProfile({ email: contactEmail })
       alerts.success('Profile saved')
     } catch (e: any) {
@@ -127,8 +133,27 @@ export default function SettingsPage() {
         </div>
 
         {/* Content */}
-        <div className="rounded-2xl bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/10 shadow-sm p-6">
-          {loading && <p className="text-sm text-slate-500 mb-3">Loading…</p>}
+        <div className="rounded-3xl bg-white/80 dark:bg-neutral-900/60 border border-black/5 dark:border-white/10 shadow-sm p-6 backdrop-blur">
+          {pageLoading && (
+            <div className="space-y-6" aria-busy>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[0,1,2,3].map((i) => (
+                  <div key={i} className="space-y-2 animate-pulse">
+                    <Skeleton className="w-40 rounded"><div className="h-4 w-full rounded bg-black/10 dark:bg-white/10" /></Skeleton>
+                    <Skeleton className="w-full rounded"><div className="h-9 w-full rounded bg-black/10 dark:bg-white/10" /></Skeleton>
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="w-full rounded-xl"><div className="h-24 w-full rounded-xl bg-black/10 dark:bg-white/10" /></Skeleton>
+                ))}
+              </div>
+            </div>
+          )}
+          {!pageLoading && (
+          <>
+          {loading && <p className="text-sm text-slate-500 mb-3">Saving…</p>}
           {error && <p className="text-sm text-rose-600 mb-3">{error}</p>}
           {tab === 'Profile' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -137,6 +162,24 @@ export default function SettingsPage() {
                 <input
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-neutral-900/60 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Domain</label>
+                <input
+                  placeholder="example.com"
+                  value={companyDomain}
+                  onChange={(e) => setCompanyDomain(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-neutral-900/60 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Timezone</label>
+                <input
+                  placeholder="Africa/Johannesburg"
+                  value={companyTz}
+                  onChange={(e) => setCompanyTz(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/15 bg-white dark:bg-neutral-900/60 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
                 />
               </div>
@@ -164,7 +207,7 @@ export default function SettingsPage() {
                 </div>
               </div>
               <div className="sm:col-span-2">
-                <button onClick={saveProfile} className="rounded-lg bg-blue-600 text-white px-4 py-2 font-medium shadow-sm hover:bg-blue-700">Save Changes</button>
+                <button onClick={saveProfile} disabled={loading} className="rounded-lg bg-blue-600 text-white px-4 py-2 font-medium shadow-sm hover:bg-blue-700 disabled:opacity-50">{loading ? 'Saving…' : 'Save Changes'}</button>
               </div>
             </div>
           )}
@@ -229,6 +272,8 @@ export default function SettingsPage() {
               <p className="text-sm text-slate-600 dark:text-slate-300">Use an authenticator app for enhanced security.</p>
               <button className="w-fit rounded-lg border border-black/10 dark:border-white/15 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">Manage devices</button>
             </div>
+          )}
+          </>
           )}
         </div>
       </div>
