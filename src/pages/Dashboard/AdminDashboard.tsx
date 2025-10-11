@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
 import { Link } from 'react-router-dom'
 import { listEmployees, listLeaves, listDocuments, getUser, updateLeaveStatus } from '../../lib/api'
+import { useAlerts } from '../../components/AlertsProvider'
 import SummarySkeleton from '../../components/SummarySkeleton'
 import { listCompanyAssignmentsApi, type CompanyAssignment } from '../../lib/api'
 import { FeatureFlags } from '../../lib/featureFlags'
+import { getAssignmentDetails } from '../../lib/api'
 import AlertsWidget from './components/AlertsWidget'
 import TrendsWidget from './components/TrendsWidget'
 import ScorecardsWidget from './components/ScorecardsWidget'
@@ -21,6 +23,7 @@ type SummaryCard = {
 }
 
 export default function AdminDashboard() {
+  const alerts = useAlerts()
   const user = getUser()
   const userName = user ? user.first_name : 'User'
 
@@ -35,6 +38,9 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [assignments, setAssignments] = useState<CompanyAssignment[]>([])
   const [assignmentsLoading, setAssignmentsLoading] = useState(true)
+  const [viewing, setViewing] = useState<{ job_id: string; employee_id: string } | null>(null)
+  const [details, setDetails] = useState<any | null>(null)
+  const [detailsLoading, setDetailsLoading] = useState(false)
   const [drillMetric, setDrillMetric] = useState<string | null>(null)
 
   useEffect(() => {
@@ -77,6 +83,23 @@ export default function AdminDashboard() {
     return () => { cancelled = true }
   }, [])
 
+  useEffect(() => {
+    let cancelled = false
+    async function loadDetails() {
+      if (!viewing) return
+      setDetailsLoading(true)
+      try {
+        const res = await getAssignmentDetails(viewing.job_id, viewing.employee_id)
+        if (!cancelled) setDetails(res)
+      } catch {}
+      finally {
+        if (!cancelled) setDetailsLoading(false)
+      }
+    }
+    loadDetails()
+    return () => { cancelled = true }
+  }, [viewing])
+
   async function refreshPending() {
     const leaves = await listLeaves({ page: 1, size: 5, status: 'requested' })
     setPending(leaves.items.map((l) => ({ id: l.id, text: `Leave #${l.id} (${l.leave_type})` })))
@@ -87,7 +110,7 @@ export default function AdminDashboard() {
       await updateLeaveStatus(id, 'approved')
       await refreshPending()
     } catch (e) {
-      alert('Failed to approve leave')
+      alerts.error('Failed to approve leave')
     }
   }
 
@@ -95,13 +118,13 @@ export default function AdminDashboard() {
     try {
       const input = window.prompt('Please provide a reason for rejection:')
       if (!input || !input.trim()) {
-        alert('A rejection reason is required.')
+        alerts.warning('A rejection reason is required.')
         return
       }
       await updateLeaveStatus(id, 'rejected', input.trim())
       await refreshPending()
     } catch (e) {
-      alert('Failed to reject leave')
+      alerts.error('Failed to reject leave')
     }
   }
 
@@ -225,9 +248,15 @@ export default function AdminDashboard() {
                     <div className="font-medium">{a.job_name || `Job #${a.job_id}`}{a.client_name ? ` — ${a.client_name}` : ''}</div>
                     <div className="text-xs text-slate-500">{a.employee_name || `Employee #${a.employee_id}`}</div>
                   </div>
-                  <span className={`ml-3 text-xs px-2 py-0.5 rounded-full ${a.state === 'done' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-200' : a.state === 'in_progress' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200' : a.state === 'canceled' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-200' : 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200'}`}>
+                  <span className={`ml-3 text-xs px-2 py-0.5 rounded-full ${
+                    a.state === 'done' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-200' :
+                    a.state === 'in_progress' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200' :
+                    a.state === 'canceled' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-200' :
+                    'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200'
+                  }`}>
                     {a.state === 'done' ? 'Done' : a.state === 'in_progress' ? 'In Progress' : a.state === 'canceled' ? 'Canceled' : 'Assigned'}
                   </span>
+                  <button onClick={() => setViewing({ job_id: String(a.job_id), employee_id: String(a.employee_id) })} className="ml-2 rounded-md border border-black/10 dark:border-white/15 px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10">Details</button>
                 </div>
                 {a.last_activity && (
                   <div className="mt-1 text-xs text-slate-500">Last activity: {a.last_activity} • {a.last_activity_at ? new Date(a.last_activity_at).toLocaleString() : ''}</div>
@@ -237,6 +266,107 @@ export default function AdminDashboard() {
           </ul>
         )}
       </section>
+
+      {/* Assignment details modal */}
+      {viewing && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/40" onClick={() => { setViewing(null); setDetails(null) }} />
+          <div className="absolute inset-x-0 top-[6%] mx-auto max-w-4xl rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 shadow-lg">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-black/5 dark:border-white/10">
+              <div className="text-sm">
+                <div className="font-semibold">Assignment Details</div>
+                {details && (
+                  <div className="text-slate-500">{details.job?.name || details.job?.id} — {details.employee?.name || details.employee?.id}</div>
+                )}
+              </div>
+              <button className="h-8 w-8 rounded-md hover:bg-black/5 dark:hover:bg-white/10 inline-flex items-center justify-center" onClick={() => { setViewing(null); setDetails(null) }} aria-label="Close">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden><path d="M19 6.4 17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z" /></svg>
+              </button>
+            </div>
+            <div className="p-4">
+              {detailsLoading ? (
+                <div className="text-sm text-slate-500">Loading…</div>
+              ) : details ? (
+                <div className="space-y-4 text-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="rounded-lg border border-black/5 dark:border-white/10 p-3">
+                      <div className="text-xs text-slate-500">Assignment</div>
+                      <div className="mt-1">State: <span className="font-medium">{details.assignment?.state}</span></div>
+                      {details.assignment?.state_changed_at && <div className="text-slate-500">Changed: {new Date(details.assignment.state_changed_at).toLocaleString()}</div>}
+                    </div>
+                    <div className="rounded-lg border border-black/5 dark:border-white/10 p-3">
+                      <div className="text-xs text-slate-500">Totals</div>
+                      <div className="mt-1">Entries: {details.totals?.entries}</div>
+                      <div>Minutes: {details.totals?.minutes}m (Break {details.totals?.break_minutes}m • Paused {details.totals?.paused_minutes}m)</div>
+                      <div>Amount: R{Number(details.totals?.amount || 0).toFixed(2)}</div>
+                    </div>
+                    <div className="rounded-lg border border-black/5 dark:border-white/10 p-3">
+                      <div className="text-xs text-slate-500">Job</div>
+                      <div className="mt-1">{details.job?.name || details.job?.id}</div>
+                      {details.job?.client_name && <div className="text-slate-500">Client: {details.job.client_name}</div>}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <div className="font-semibold mb-2">Timeline</div>
+                      {details.timeline?.length ? (
+                        <ul className="space-y-2">
+                          {details.timeline.map((ev: any, idx: number) => (
+                            <li key={idx} className="rounded-lg border border-black/5 dark:border-white/10 px-3 py-2">
+                              <div className="flex items-center justify-between">
+                                <div className="font-medium">{ev.action}</div>
+                                <div className="text-xs text-slate-500">{ev.created_at ? new Date(ev.created_at).toLocaleString() : ''}</div>
+                              </div>
+                              {(ev.actor_name || ev.note) && (
+                                <div className="mt-1 text-xs text-slate-500">{ev.actor_name ? `By ${ev.actor_name}` : ''}{ev.actor_name && ev.note ? ' • ' : ''}{ev.note || ''}</div>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : <div className="text-slate-500 text-sm">No activity.</div>}
+                    </div>
+                    <div>
+                      <div className="font-semibold mb-2">Entries</div>
+                      {details.entries?.length ? (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs rounded border border-black/5 dark:border-white/10">
+                            <thead className="bg-slate-50/80 dark:bg-neutral-800/50">
+                              <tr>
+                                <th className="px-2 py-1 text-left">Start</th>
+                                <th className="px-2 py-1 text-left">End</th>
+                                <th className="px-2 py-1 text-left">Break</th>
+                                <th className="px-2 py-1 text-left">Paused</th>
+                                <th className="px-2 py-1 text-left">Duration</th>
+                                <th className="px-2 py-1 text-left">State</th>
+                                <th className="px-2 py-1 text-left">Reason</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-black/5 dark:divide-white/10">
+                              {details.entries.map((e: any) => (
+                                <tr key={e.id}>
+                                  <td className="px-2 py-1">{e.start_ts ? new Date(e.start_ts).toLocaleString() : ''}</td>
+                                  <td className="px-2 py-1">{e.end_ts ? new Date(e.end_ts).toLocaleString() : (e.is_active ? '—' : '')}</td>
+                                  <td className="px-2 py-1">{e.break_minutes}m</td>
+                                  <td className="px-2 py-1">{e.paused_minutes || 0}m</td>
+                                  <td className="px-2 py-1">{e.duration_minutes != null ? `${e.duration_minutes}m` : (e.is_active ? 'running' : '—')}</td>
+                                  <td className="px-2 py-1">{e.state}</td>
+                                  <td className="px-2 py-1">{e.state === 'paused' ? e.pause_reason : e.state === 'abandoned' ? (e.abandoned_reason || '—') : (e.note || '—')}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : <div className="text-slate-500 text-sm">No entries.</div>}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-slate-500">No details.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       {FeatureFlags.DASHBOARD_DRILLDOWN && drillMetric ? (
         <DrilldownModal metric={drillMetric} onClose={() => setDrillMetric(null)} />
       ) : null}

@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { listJobs, type JobOut, listMyTimeEntriesApi, type Paginated, type TimeEntryOut, clockInApi, breakStartApi, breakEndApi, clockOutApi, createManualEntryApi, getUser, pauseJobApi, resumeJobApi, abandonJobApi } from '../../lib/api'
 import Breadcrumbs from '../../components/Breadcrumbs'
+import { useAlerts } from '../../components/AlertsProvider'
 import { Skeleton } from '@heroui/react'
 
 export default function TimesheetsPage() {
+  const alerts = useAlerts()
   const [jobs, setJobs] = useState<JobOut[]>([])
   const [selectedJobId, setSelectedJobId] = useState<string>('')
   const [entries, setEntries] = useState<Paginated<TimeEntryOut>>({ items: [], total: 0, page: 1, size: 20 })
@@ -39,22 +41,22 @@ export default function TimesheetsPage() {
   const isAdminLike = ['admin','manager','hr'].includes(role)
 
   async function onClockIn() {
-    if (!selectedJobId) { alert('Pick a job first'); return }
+    if (!selectedJobId) { alerts.warning('Pick a job first'); return }
     try {
       await clockInApi({ job_id: selectedJobId })
       await load()
     } catch (e: any) {
-      alert(e?.message || 'Clock-in failed')
+      alerts.error(e?.message || 'Clock-in failed')
     }
   }
   async function onBreakStart() {
-    try { await breakStartApi(); await load() } catch (e: any) { alert(e?.message || 'Failed to start break') }
+    try { await breakStartApi(); await load() } catch (e: any) { alerts.error(e?.message || 'Failed to start break') }
   }
   async function onBreakEnd() {
-    try { await breakEndApi(); await load() } catch (e: any) { alert(e?.message || 'Failed to end break') }
+    try { await breakEndApi(); await load() } catch (e: any) { alerts.error(e?.message || 'Failed to end break') }
   }
   async function onClockOut() {
-    try { await clockOutApi(); await load() } catch (e: any) { alert(e?.message || 'Clock-out failed') }
+    try { await clockOutApi(); await load() } catch (e: any) { alerts.error(e?.message || 'Clock-out failed') }
   }
   async function onPauseClick() {
     const reason = window.prompt('Reason for pausing? (optional)') || undefined
@@ -64,15 +66,15 @@ export default function TimesheetsPage() {
       const parsed = new Date(plan)
       if (!isNaN(parsed.getTime())) resume_at = parsed.toISOString()
     }
-    try { await pauseJobApi({ reason, resume_at }); await load() } catch (e: any) { alert(e?.message || 'Failed to pause job') }
+    try { await pauseJobApi({ reason, resume_at }); await load() } catch (e: any) { alerts.error(e?.message || 'Failed to pause job') }
   }
   async function onResumeClick() {
-    try { await resumeJobApi(); await load() } catch (e: any) { alert(e?.message || 'Failed to resume job') }
+    try { await resumeJobApi(); await load() } catch (e: any) { alerts.error(e?.message || 'Failed to resume job') }
   }
   async function onAbandonClick() {
     const reason = window.prompt('Reason for abandoning? (required)')
-    if (!reason || !reason.trim()) { alert('A reason is required.'); return }
-    try { await abandonJobApi({ reason: reason.trim() }); await load() } catch (e: any) { alert(e?.message || 'Failed to abandon job') }
+    if (!reason || !reason.trim()) { alerts.warning('A reason is required.'); return }
+    try { await abandonJobApi({ reason: reason.trim() }); await load() } catch (e: any) { alerts.error(e?.message || 'Failed to abandon job') }
   }
 
   // Manual entry form state
@@ -84,7 +86,7 @@ export default function TimesheetsPage() {
 
   async function onCreateManual(e: FormEvent) {
     e.preventDefault()
-    if (!mJobId || !mStart || !mEnd) { alert('Fill all required fields'); return }
+    if (!mJobId || !mStart || !mEnd) { alerts.warning('Fill all required fields'); return }
     try {
       setCreating(true)
       const start_iso = new Date(mStart).toISOString()
@@ -93,7 +95,7 @@ export default function TimesheetsPage() {
       setMNote(''); setMStart(''); setMEnd(''); setMBreak(0)
       await load()
     } catch (e: any) {
-      alert(e?.message || 'Failed to create entry')
+      alerts.error(e?.message || 'Failed to create entry')
     } finally { setCreating(false) }
   }
 

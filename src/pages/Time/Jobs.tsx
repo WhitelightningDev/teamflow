@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { listJobs, type JobOut, createJobApi, updateJobApi, setJobRateApi, listJobRatesApi, type JobRateOut, listJobAssignmentsApi, assignJobApi, assignJobByEmailApi, unassignJobApi } from '../../lib/api'
 import Breadcrumbs from '../../components/Breadcrumbs'
+import { useAlerts } from '../../components/AlertsProvider'
 
 export default function JobsPage() {
+  const alerts = useAlerts()
   const [jobs, setJobs] = useState<JobOut[]>([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
@@ -24,27 +26,27 @@ export default function JobsPage() {
 
   async function onCreate(e: FormEvent) {
     e.preventDefault()
-    if (!name.trim()) { alert('Name is required'); return }
+    if (!name.trim()) { alerts.warning('Name is required'); return }
     try {
       setCreating(true)
       await createJobApi({ name: name.trim(), client_name: client || undefined, default_rate: rate || 0, active: true })
       setName(''); setClient(''); setRate(0)
       await load()
     } catch (e: any) {
-      alert(e?.message || 'Failed to create job')
+      alerts.error(e?.message || 'Failed to create job')
     } finally { setCreating(false) }
   }
 
   async function toggleActive(job: JobOut) {
-    try { await updateJobApi(job.id, { active: !job.active }); await load() } catch (e: any) { alert(e?.message || 'Failed to update') }
+    try { await updateJobApi(job.id, { active: !job.active }); await load() } catch (e: any) { alerts.error(e?.message || 'Failed to update') }
   }
 
   async function changeRate(job: JobOut) {
     const input = window.prompt('New default hourly rate (e.g., 250.00):', String(job.default_rate))
     if (!input) return
     const val = Number(input)
-    if (!isFinite(val) || val < 0) { alert('Invalid rate'); return }
-    try { await updateJobApi(job.id, { default_rate: val }); await load() } catch (e: any) { alert(e?.message || 'Failed to update rate') }
+    if (!isFinite(val) || val < 0) { alerts.warning('Invalid rate'); return }
+    try { await updateJobApi(job.id, { default_rate: val }); await load() } catch (e: any) { alerts.error(e?.message || 'Failed to update rate') }
   }
 
   return (
@@ -105,6 +107,7 @@ export default function JobsPage() {
 }
 
 function JobRow({ job, onToggle, onChangeRate }: { job: JobOut; onToggle: () => void; onChangeRate: () => void }) {
+  const alerts = useAlerts()
   const [showRates, setShowRates] = useState(false)
   const [rates, setRates] = useState<JobRateOut[]>([])
   const [empId, setEmpId] = useState('')
@@ -120,8 +123,8 @@ function JobRow({ job, onToggle, onChangeRate }: { job: JobOut; onToggle: () => 
 
   async function saveRate(e: FormEvent) {
     e.preventDefault()
-    if (!empId || empRate < 0) { alert('Provide employee ID and a non-negative rate'); return }
-    try { await setJobRateApi(job.id, { employee_id: empId, rate: empRate }); setEmpId(''); setEmpRate(0); await loadRates() } catch (e: any) { alert(e?.message || 'Failed to set rate') }
+    if (!empId || empRate < 0) { alerts.warning('Provide employee ID and a non-negative rate'); return }
+    try { await setJobRateApi(job.id, { employee_id: empId, rate: empRate }); setEmpId(''); setEmpRate(0); await loadRates() } catch (e: any) { alerts.error(e?.message || 'Failed to set rate') }
   }
 
   async function loadAssignments() {
@@ -134,16 +137,16 @@ function JobRow({ job, onToggle, onChangeRate }: { job: JobOut; onToggle: () => 
 
   async function saveAssignment(e: FormEvent) {
     e.preventDefault()
-    if (!assignEmpId) { alert('Provide an employee ID or email'); return }
+    if (!assignEmpId) { alerts.warning('Provide an employee ID or email'); return }
     try {
       // assign by id or email
       if (assignEmpId.includes('@')) await assignJobByEmailApi(job.id, assignEmpId); else await assignJobApi(job.id, assignEmpId)
       setAssignEmpId('')
       await loadAssignments()
-    } catch (e: any) { alert(e?.message || 'Failed to assign') }
+    } catch (e: any) { alerts.error(e?.message || 'Failed to assign') }
   }
   async function removeAssignment(employee_id: string | number) {
-    try { await unassignJobApi(job.id, employee_id); await loadAssignments() } catch (e: any) { alert(e?.message || 'Failed to unassign') }
+    try { await unassignJobApi(job.id, employee_id); await loadAssignments() } catch (e: any) { alerts.error(e?.message || 'Failed to unassign') }
   }
 
   return (

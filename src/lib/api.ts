@@ -479,6 +479,31 @@ export async function listCompanyAssignmentsApi(params?: { state?: 'assigned' | 
   return apiFetch<Paginated<CompanyAssignment>>(`/api/v1/time/assignments${qs ? `?${qs}` : ''}`, { method: 'GET' })
 }
 
+// Assignment audit/details (admin)
+export type AssignmentEntry = {
+  id: string | number
+  start_ts?: string
+  end_ts?: string | null
+  break_minutes: number
+  paused_minutes?: number
+  duration_minutes?: number | null
+  is_active: boolean
+  on_break: boolean
+  on_pause?: boolean
+  state?: 'active' | 'paused' | 'completed' | 'abandoned'
+  note?: string | null
+  pause_reason?: string | null
+  abandoned_reason?: string | null
+  planned_resume_at?: string | null
+  rate?: number | null
+  amount?: number | null
+}
+export type AssignmentEvent = { action: string; created_at: string; note?: string | null; actor_user_id?: string | null; actor_name?: string | null }
+export async function getAssignmentDetails(job_id: string | number, employee_id: string | number): Promise<{ job: { id: string; name: string; client_name?: string | null }; employee: { id: string; name?: string | null }; assignment: { state: string; state_changed_at?: string; created_at?: string; updated_at?: string }; timeline: AssignmentEvent[]; entries: AssignmentEntry[]; totals: { entries: number; minutes: number; break_minutes: number; paused_minutes: number; amount: number } }> {
+  const q = new URLSearchParams({ job_id: String(job_id), employee_id: String(employee_id) })
+  return apiFetch(`/api/v1/time/assignments/details?${q.toString()}`, { method: 'GET' })
+}
+
 // Settings APIs
 export type ProfileOut = {
   id: number | string
