@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAlerts } from '../../components/AlertsProvider'
 
 export default function AnnouncementsCreate() {
+  const alerts = useAlerts()
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [audience, setAudience] = useState<'company'|'managers'|'employees'>('company')
@@ -26,7 +28,7 @@ export default function AnnouncementsCreate() {
         throw new Error(d?.detail || 'Failed to create')
       }
       // simple toast
-      alert('Announcement published!')
+      alerts.success('Announcement published!')
       navigate('/announcements')
     } catch (err: any) {
       setError(err?.message || 'Failed')
