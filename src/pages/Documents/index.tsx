@@ -110,7 +110,7 @@ export default function DocumentsPage() {
                 <div className="flex gap-2">
                   <button className="rounded-md border border-black/10 dark:border-white/15 px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10" onClick={() => alerts.success('Preview coming soon')}>View</button>
                   <button className="rounded-md border border-black/10 dark:border-white/15 px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10" onClick={() => alerts.success('Download coming soon')}>Download</button>
-                  <button onClick={async () => { try { await deleteDocument(d.id); setDocs((prev) => prev.filter((x) => x.id !== d.id)) } catch { alert('Delete failed') } }} className="rounded-md border border-black/10 dark:border-white/15 px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10 text-rose-600">Delete</button>
+                  <button onClick={async () => { try { await deleteDocument(d.id); setDocs((prev) => prev.filter((x) => x.id !== d.id)) } catch { alerts.error('Delete failed') } }} className="rounded-md border border-black/10 dark:border-white/15 px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10 text-rose-600">Delete</button>
                 </div>
               </div>
             </div>

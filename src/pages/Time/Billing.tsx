@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { billingReportApi, listJobs, type JobOut } from '../../lib/api'
 import Breadcrumbs from '../../components/Breadcrumbs'
+import { useAlerts } from '../../components/AlertsProvider'
 
 type JobSummary = {
   job_id: string
@@ -13,6 +14,7 @@ type JobSummary = {
 }
 
 export default function BillingPage() {
+  const alerts = useAlerts()
   const [month, setMonth] = useState<string>(new Date().toISOString().slice(0,7))
   const [jobs, setJobs] = useState<JobOut[]>([])
   const [jobId, setJobId] = useState<string>('')
@@ -22,13 +24,13 @@ export default function BillingPage() {
   useEffect(() => { (async () => { try { setJobs(await listJobs()); if (!jobId && jobs.length) setJobId(String(jobs[0].id)) } catch {} })() }, [])
 
   async function run() {
-    if (!month || !/^\d{4}-\d{2}$/.test(month)) { alert('Enter YYYY-MM'); return }
+    if (!month || !/^\d{4}-\d{2}$/.test(month)) { alerts.warning('Enter YYYY-MM'); return }
     setLoading(true)
     try {
       const data = await billingReportApi(month, jobId || undefined)
       setRows(data.jobs)
     } catch (e: any) {
-      alert(e?.message || 'Failed to load')
+      alerts.error(e?.message || 'Failed to load')
     } finally { setLoading(false) }
   }
 

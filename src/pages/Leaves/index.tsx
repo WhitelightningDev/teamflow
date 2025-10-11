@@ -51,16 +51,13 @@ export default function LeavesPage() {
       let comment: string | undefined
       if (newStatus === 'rejected') {
         const input = window.prompt('Please provide a reason for rejection:')
-        if (!input || !input.trim()) {
-          alert('A rejection reason is required.')
-          return
-        }
+        if (!input || !input.trim()) { alerts.warning('A rejection reason is required.'); return }
         comment = input.trim()
       }
       const updated = await updateLeaveStatus(id, newStatus, comment)
       setRequests((prev) => prev.map((r) => (r.id === id ? mapLeave(updated) : r)))
     } catch (e) {
-      alert('Failed to update leave status')
+      alerts.error('Failed to update leave status')
     }
   }
 
@@ -202,7 +199,7 @@ export default function LeavesPage() {
                 const res = await listLeaves({ page: 1, size: 50 })
                 setRequests(res.items.map(mapLeave))
               } catch (err: any) {
-                alert(err?.message || 'Failed to create leave')
+                alerts.error(err?.message || 'Failed to create leave')
               } finally {
                 setCreating(false)
               }
@@ -247,7 +244,7 @@ export default function LeavesPage() {
                       await uploadDocument(f, { leave_id: createdLeaveId, category: 'leave' })
                       alerts.success('Document uploaded')
                     } catch (err: any) {
-                      alert(err?.message || 'Upload failed')
+                      alerts.error(err?.message || 'Upload failed')
                     }
                   }} />
                 </div>
