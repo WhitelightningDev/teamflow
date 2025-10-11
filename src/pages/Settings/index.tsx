@@ -67,8 +67,8 @@ export default function SettingsPage() {
     }
   }
   const changePassword = async () => {
-    if (newPassword.length < 8) return alert('Password must be at least 8 characters.')
-    if (newPassword !== confirmPassword) return alert('Passwords do not match.')
+    if (newPassword.length < 8) { alerts.warning('Password must be at least 8 characters.'); return }
+    if (newPassword !== confirmPassword) { alerts.warning('Passwords do not match.'); return }
     try {
       setLoading(true)
       setError(null)
@@ -91,7 +91,7 @@ export default function SettingsPage() {
     } catch {
       // revert on error
       setEmailNotifs(!checked)
-      alert('Failed to update email notifications')
+      alerts.error('Failed to update email notifications')
     }
   }
   async function onToggleAppNotifications(checked: boolean) {
@@ -100,7 +100,7 @@ export default function SettingsPage() {
       await updateNotifications({ push_notifications: checked })
     } catch {
       setAppNotifs(!checked)
-      alert('Failed to update app notifications')
+      alerts.error('Failed to update app notifications')
     }
   }
 

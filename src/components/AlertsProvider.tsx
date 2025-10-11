@@ -12,6 +12,9 @@ export type AlertItem = {
 type AlertsContextValue = {
   push: (item: Omit<AlertItem, 'id'>) => void
   success: (title: string, description?: string, durationMs?: number) => void
+  error: (title: string, description?: string, durationMs?: number) => void
+  warning: (title: string, description?: string, durationMs?: number) => void
+  info: (title: string, description?: string, durationMs?: number) => void
 }
 
 const AlertsContext = createContext<AlertsContextValue | null>(null)
@@ -32,6 +35,9 @@ export function AlertsProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AlertsContextValue>(() => ({
     push,
     success: (title: string, description?: string, durationMs?: number) => push({ color: 'success', title, description, duration: durationMs ?? 4000 }),
+    error: (title: string, description?: string, durationMs?: number) => push({ color: 'danger', title, description, duration: durationMs ?? 5000 }),
+    warning: (title: string, description?: string, durationMs?: number) => push({ color: 'warning', title, description, duration: durationMs ?? 4500 }),
+    info: (title: string, description?: string, durationMs?: number) => push({ color: 'primary', title, description, duration: durationMs ?? 4000 }),
   }), [push])
 
   return (
@@ -60,4 +66,3 @@ export function useAlerts() {
   if (!ctx) throw new Error('useAlerts must be used within AlertsProvider')
   return ctx
 }
-
