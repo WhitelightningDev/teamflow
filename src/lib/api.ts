@@ -608,9 +608,15 @@ export async function dashboardAlerts(params?: { pending_leave_threshold?: numbe
   const qs = q.toString()
   return apiFetch<AlertItem[]>(`/api/v1/dashboard/alerts${qs ? `?${qs}` : ''}`, { method: 'GET' })
 }
-export async function dashboardTrends(months = 6): Promise<TrendSeries[]> {
-  const q = new URLSearchParams({ months: String(months) })
-  return apiFetch<TrendSeries[]>(`/api/v1/dashboard/trends?${q.toString()}`, { method: 'GET' })
+export async function dashboardTrends(opts?: { window?: '6m' | '3m' | '1m' | '7d' } | number): Promise<TrendSeries[]> {
+  // Back-compat: if number passed, treat as months
+  if (typeof opts === 'number') {
+    const q = new URLSearchParams({ months: String(opts) })
+    return apiFetch<TrendSeries[]>(`/api/v1/dashboard/trends?${q.toString()}`, { method: 'GET' })
+  }
+  const q = new URLSearchParams()
+  if (opts?.window) q.set('window', opts.window)
+  return apiFetch<TrendSeries[]>(`/api/v1/dashboard/trends${q.toString() ? `?${q.toString()}` : ''}`, { method: 'GET' })
 }
 export async function dashboardScorecards(): Promise<ScorecardRow[]> {
   return apiFetch<ScorecardRow[]>(`/api/v1/dashboard/scorecards`, { method: 'GET' })
