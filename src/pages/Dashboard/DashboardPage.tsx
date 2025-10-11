@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { JSX } from 'react'
+import type { ComponentType } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../../components/Logo'
 import { getUser, clearAuth } from '../../lib/api'
@@ -7,6 +7,7 @@ import NotificationsBell from '../../components/NotificationsBell'
 import AdminDashboard from './AdminDashboard'
 import EmployeeDashboard from './EmployeeDashboard'
 import Breadcrumbs from '../../components/Breadcrumbs'
+import { LayoutGrid, Clock, Briefcase, DollarSign, Users, CalendarDays, FileText, Settings as LucideSettings, User as UserIcon } from 'lucide-react'
 
 export default function DashboardPage() {
   const storedUser = getUser()
@@ -115,7 +116,7 @@ export default function DashboardPage() {
 function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const { pathname } = useLocation()
   const role = ((getUser() as any)?.role) || 'employee'
-  const NavItem = ({ to, label, Icon, active = false }: { to: string; label: string; Icon: (p: { className?: string }) => JSX.Element; active?: boolean }) => (
+  const NavItem = ({ to, label, Icon, active = false }: { to: string; label: string; Icon: ComponentType<{ className?: string }>; active?: boolean }) => (
     <Link
       to={to}
       onClick={onNavigate}
@@ -134,21 +135,21 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const isAdminLikeRole = ['admin','manager','hr'].includes(role)
   const items = isAdminLikeRole
     ? [
-        { to: '/dashboard', label: 'Dashboard', Icon: GridIcon },
-        { to: '/time', label: 'Time', Icon: ClockIcon },
-        { to: '/time/jobs', label: 'Job Types', Icon: BriefcaseIcon },
-        { to: '/time/billing', label: 'Billing', Icon: DollarIcon },
-        { to: '/employees', label: 'Employees', Icon: UsersIcon },
-        { to: '/leaves', label: 'Leaves', Icon: CalendarIcon },
-        { to: '/documents', label: 'Documents', Icon: FileIcon },
-        { to: '/settings', label: 'Settings', Icon: SettingsIcon },
+        { to: '/dashboard', label: 'Dashboard', Icon: LayoutGrid },
+        { to: '/time', label: 'Time', Icon: Clock },
+        { to: '/time/jobs', label: 'Job Types', Icon: Briefcase },
+        { to: '/time/billing', label: 'Billing', Icon: DollarSign },
+        { to: '/employees', label: 'Employees', Icon: Users },
+        { to: '/leaves', label: 'Leaves', Icon: CalendarDays },
+        { to: '/documents', label: 'Documents', Icon: FileText },
+        { to: '/settings', label: 'Settings', Icon: LucideSettings },
       ]
     : [
-        { to: '/dashboard', label: 'Dashboard', Icon: GridIcon },
-        { to: '/time', label: 'My Timesheet', Icon: ClockIcon },
-        { to: '/leaves', label: 'My Leaves', Icon: CalendarIcon },
-        { to: '/documents', label: 'My Documents', Icon: FileIcon },
-        { to: '/profile', label: 'Profile', Icon: SettingsIcon },
+        { to: '/dashboard', label: 'Dashboard', Icon: LayoutGrid },
+        { to: '/time', label: 'My Timesheet', Icon: Clock },
+        { to: '/leaves', label: 'My Leaves', Icon: CalendarDays },
+        { to: '/documents', label: 'My Documents', Icon: FileText },
+        { to: '/profile', label: 'Profile', Icon: UserIcon },
       ]
   return (
     <nav className="rounded-2xl border border-black/5 dark:border-white/10 bg-white/80 dark:bg-neutral-900/60 backdrop-blur p-3 sm:p-4 space-y-1">
@@ -194,61 +195,4 @@ function ChevronDownIcon({ className = '' }: { className?: string }) {
     </svg>
   )
 }
-function GridIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <path d="M3 3h8v8H3zM13 3h8v5h-8zM13 10h8v11h-8zM3 13h8v8H3z" />
-    </svg>
-  )
-}
-function ClockIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2m1 11h-4V7h2v4h2z" />
-    </svg>
-  )
-}
-function BriefcaseIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <path d="M10 2h4a2 2 0 0 1 2 2v2h4a2 2 0 0 1 2 2v3H2V8a2 2 0 0 1 2-2h4V4a2 2 0 0 1 2-2m4 4V4h-4v2zm10 6H2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2z" />
-    </svg>
-  )
-}
-function DollarIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <path d="M12 1a1 1 0 0 1 1 1v1.06a5 5 0 0 1 4 4.94h-2a3 3 0 0 0-3-3H9a2 2 0 0 0 0 4h3a5 5 0 0 1 0 10H13V23a1 1 0 0 1-2 0v-1.06a5 5 0 0 1-4-4.94h2a3 3 0 0 0 3 3h2a2 2 0 0 0 0-4H11a5 5 0 0 1 0-10H11V2a1 1 0 0 1 1-1Z" />
-    </svg>
-  )
-}
-function UsersIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4m-7 8a7 7 0 0 1 14 0v1H5z" />
-    </svg>
-  )
-}
-function CalendarIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1m10 5H7v2h10zM4 10v9a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-9z" />
-    </svg>
-  )
-}
-function FileIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <path d="M6 2h7l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m7 1.5V8h4.5" />
-    </svg>
-  )
-}
-// Removed legacy summary-only icons (Sun, CircleDot) as part of cleanup
-// Removed ArrowRightIcon (unused after summary cleanup)
-function SettingsIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <path d="M12 8a4 4 0 1 1-4 4 4 4 0 0 1 4-4m8.94 4a7.93 7.93 0 0 0-.11-1.31l2.11-1.65-2-3.46-2.49 1a7.77 7.77 0 0 0-2.27-1.32l-.38-2.65h-4l-.38 2.65A7.77 7.77 0 0 0 7.45 4.3l-2.49-1-2 3.46L5.07 8.4A7.93 7.93 0 0 0 5 12a7.93 7.93 0 0 0 .11 1.31l-2.11 1.65 2 3.46 2.49-1a7.77 7.77 0 0 0 2.27 1.32l.38 2.65h4l.38-2.65a7.77 7.77 0 0 0 2.27-1.32l2.49 1 2-3.46-2.11-1.65c.07-.43.11-.87.11-1.31Z" />
-    </svg>
-  )
-}
+// Removed legacy summary-only icons to prefer Lucide icons in nav
