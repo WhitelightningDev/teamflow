@@ -36,8 +36,13 @@ export default function AdminDashboard() {
   const [pending, setPending] = useState<{ id: string | number; text: string }[]>([])
   const [recent, setRecent] = useState<{ id: string | number; name: string; event: string }[]>([])
   const [loading, setLoading] = useState(true)
-  const [assignments, setAssignments] = useState<CompanyAssignment[]>([])
   const [assignmentsLoading, setAssignmentsLoading] = useState(true)
+  const [assignByState, setAssignByState] = useState<{
+    assigned: CompanyAssignment[]
+    in_progress: CompanyAssignment[]
+    done: CompanyAssignment[]
+    canceled: CompanyAssignment[]
+  }>({ assigned: [], in_progress: [], done: [], canceled: [] })
   const [viewing, setViewing] = useState<{ job_id: string; employee_id: string } | null>(null)
   const [details, setDetails] = useState<any | null>(null)
   const [detailsLoading, setDetailsLoading] = useState(false)
@@ -70,11 +75,21 @@ export default function AdminDashboard() {
       } finally {
         if (!cancelled) setLoading(false)
       }
-      // Load assignments snapshot
+      // Load assignments snapshot (separated by state)
       setAssignmentsLoading(true)
       try {
-        const res = await listCompanyAssignmentsApi({ page: 1, limit: 20 })
-        if (!cancelled) setAssignments(res.items)
+        const [assigned, in_progress, done, canceled] = await Promise.all([
+          listCompanyAssignmentsApi({ state: 'assigned', page: 1, limit: 10 }).catch(() => ({ items: [] as CompanyAssignment[] })),
+          listCompanyAssignmentsApi({ state: 'in_progress', page: 1, limit: 10 }).catch(() => ({ items: [] as CompanyAssignment[] })),
+          listCompanyAssignmentsApi({ state: 'done', page: 1, limit: 10 }).catch(() => ({ items: [] as CompanyAssignment[] })),
+          listCompanyAssignmentsApi({ state: 'canceled', page: 1, limit: 10 }).catch(() => ({ items: [] as CompanyAssignment[] })),
+        ])
+        if (!cancelled) setAssignByState({
+          assigned: assigned.items,
+          in_progress: in_progress.items,
+          done: done.items,
+          canceled: canceled.items,
+        })
       } finally {
         if (!cancelled) setAssignmentsLoading(false)
       }
@@ -220,50 +235,62 @@ export default function AdminDashboard() {
 
       {FeatureFlags.DASHBOARD_SCORECARDS ? <ScorecardsWidget /> : null}
 
-      {/* Assigned Jobs Snapshot */}
+      {/* Assignments by State */}
       <section className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-neutral-900 p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold">Assigned Jobs</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Assignments by State</h2>
           <Link to="/time/jobs" className="text-sm text-blue-600 hover:underline">Manage jobs</Link>
         </div>
         {assignmentsLoading ? (
-          <ul className="space-y-2" aria-busy>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <li key={i} className="rounded-lg border border-black/5 dark:border-white/10 px-3 py-2">
-                <div className="flex items-center justify-between animate-pulse">
-                  <div className="h-3 w-1/2 rounded bg-black/10 dark:bg-white/10" />
-                  <div className="h-3 w-20 rounded bg-black/10 dark:bg-white/10" />
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4" aria-busy>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-xl border border-black/5 dark:border-white/10 p-4">
+                <div className="h-4 w-24 rounded bg-black/10 dark:bg-white/10 mb-3" />
+                <div className="space-y-2">
+                  {Array.from({ length: 3 }).map((_, j) => (
+                    <div key={j} className="h-8 rounded bg-black/10 dark:bg-white/10" />
+                  ))}
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
-        ) : assignments.length === 0 ? (
-          <div className="text-sm text-slate-500">No assignments yet.</div>
+          </div>
         ) : (
-          <ul className="space-y-2 text-sm">
-            {assignments.map((a) => (
-              <li key={`${a.job_id}-${a.employee_id}`} className="rounded-lg border border-black/5 dark:border-white/10 px-3 py-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="font-medium">{a.job_name || `Job #${a.job_id}`}{a.client_name ? ` — ${a.client_name}` : ''}</div>
-                    <div className="text-xs text-slate-500">{a.employee_name || `Employee #${a.employee_id}`}</div>
-                  </div>
-                  <span className={`ml-3 text-xs px-2 py-0.5 rounded-full ${
-                    a.state === 'done' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-200' :
-                    a.state === 'in_progress' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200' :
-                    a.state === 'canceled' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-200' :
-                    'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200'
-                  }`}>
-                    {a.state === 'done' ? 'Done' : a.state === 'in_progress' ? 'In Progress' : a.state === 'canceled' ? 'Canceled' : 'Assigned'}
-                  </span>
-                  <button onClick={() => setViewing({ job_id: String(a.job_id), employee_id: String(a.employee_id) })} className="ml-2 rounded-md border border-black/10 dark:border-white/15 px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10">Details</button>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            {(
+              [
+                { key: 'assigned', title: 'Assigned', items: assignByState.assigned },
+                { key: 'in_progress', title: 'In Progress', items: assignByState.in_progress },
+                { key: 'done', title: 'Completed', items: assignByState.done },
+                { key: 'canceled', title: 'Canceled/Abandoned', items: assignByState.canceled },
+              ] as { key: string; title: string; items: CompanyAssignment[] }[]
+            ).map(({ key, title, items }) => (
+              <div key={key} className="rounded-xl border border-black/5 dark:border-white/10 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium">{title}</span>
                 </div>
-                {a.last_activity && (
-                  <div className="mt-1 text-xs text-slate-500">Last activity: {a.last_activity} • {a.last_activity_at ? new Date(a.last_activity_at).toLocaleString() : ''}</div>
+                {items.length === 0 ? (
+                  <div className="text-sm text-slate-500">None</div>
+                ) : (
+                  <ul className="space-y-2 text-sm">
+                    {items.map((a) => (
+                      <li key={`${a.job_id}-${a.employee_id}`} className="rounded-lg border border-black/5 dark:border-white/10 px-3 py-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate">{a.job_name || `Job #${a.job_id}`}{a.client_name ? ` — ${a.client_name}` : ''}</div>
+                            <div className="text-xs text-slate-500 truncate">{a.employee_name || `Employee #${a.employee_id}`}</div>
+                          </div>
+                          <button onClick={() => setViewing({ job_id: String(a.job_id), employee_id: String(a.employee_id) })} className="ml-2 rounded-md border border-black/10 dark:border-white/15 px-2 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10">Details</button>
+                        </div>
+                        {a.last_activity && (
+                          <div className="mt-1 text-xs text-slate-500">{a.last_activity_at ? new Date(a.last_activity_at).toLocaleDateString() : ''}</div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
                 )}
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </section>
 
