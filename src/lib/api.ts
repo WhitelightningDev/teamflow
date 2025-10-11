@@ -90,6 +90,14 @@ export async function login(body: LoginBody): Promise<AuthResponse> {
   })
 }
 
+export async function requestPasswordReset(email: string): Promise<{ status: string }> {
+  return apiFetch<{ status: string }>(`/api/v1/auth/forgot-password`, { method: 'POST', body: JSON.stringify({ email }) })
+}
+
+export async function performPasswordReset(token: string, new_password: string): Promise<{ status: string }> {
+  return apiFetch<{ status: string }>(`/api/v1/auth/reset-password`, { method: 'POST', body: JSON.stringify({ token, new_password }) })
+}
+
 export async function me(token: string): Promise<AuthUser> {
   return apiFetch<AuthUser>('/api/v1/auth/me', {
     method: 'GET',
