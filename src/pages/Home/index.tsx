@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import Logo from '../../components/Logo'
+import { Users, Calendar, Megaphone, Briefcase, UserCog, DollarSign, FileText } from 'lucide-react'
 
 export default function Home() {
   return (
@@ -50,20 +51,41 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right: illustration / abstract graphic */}
+          {/* Right: illustration / abstract graphic with HR icons */}
           <div className="relative">
             <div className="relative mx-auto w-full max-w-md aspect-square">
               <div aria-hidden className="absolute inset-0 rounded-3xl bg-gradient-to-tr from-blue-600 via-indigo-500 to-fuchsia-500 opacity-90 shadow-2xl"></div>
               <div aria-hidden className="absolute -inset-4 blur-2xl bg-gradient-to-tr from-blue-600/40 via-indigo-500/40 to-fuchsia-500/40"></div>
               <div className="relative h-full w-full rounded-3xl bg-white/70 dark:bg-neutral-950/60 p-6 ring-1 ring-black/10 dark:ring-white/10 backdrop-blur">
                 <div className="grid h-full w-full grid-cols-3 gap-3">
-                  <div className="rounded-xl bg-white/80 dark:bg-neutral-900/80 ring-1 ring-black/5 dark:ring-white/10"></div>
-                  <div className="rounded-xl bg-white/80 dark:bg-neutral-900/80 ring-1 ring-black/5 dark:ring-white/10"></div>
-                  <div className="rounded-xl bg-white/80 dark:bg-neutral-900/80 ring-1 ring-black/5 dark:ring-white/10"></div>
-                  <div className="col-span-2 rounded-xl bg-white/80 dark:bg-neutral-900/80 ring-1 ring-black/5 dark:ring-white/10"></div>
-                  <div className="rounded-xl bg-white/80 dark:bg-neutral-900/80 ring-1 ring-black/5 dark:ring-white/10"></div>
-                  <div className="rounded-xl bg-white/80 dark:bg-neutral-900/80 ring-1 ring-black/5 dark:ring-white/10"></div>
-                  <div className="col-span-2 rounded-xl bg-white/80 dark:bg-neutral-900/80 ring-1 ring-black/5 dark:ring-white/10"></div>
+                  <div className="rounded-xl bg-white/80 dark:bg-neutral-900/80 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center">
+                    <Users className="h-7 w-7 text-blue-700 dark:text-blue-400" aria-hidden />
+                    <span className="sr-only">Employees</span>
+                  </div>
+                  <div className="rounded-xl bg-white/80 dark:bg-neutral-900/80 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center">
+                    <Calendar className="h-7 w-7 text-indigo-700 dark:text-indigo-400" aria-hidden />
+                    <span className="sr-only">Time off calendar</span>
+                  </div>
+                  <div className="rounded-xl bg-white/80 dark:bg-neutral-900/80 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center">
+                    <Megaphone className="h-7 w-7 text-fuchsia-700 dark:text-fuchsia-400" aria-hidden />
+                    <span className="sr-only">Announcements</span>
+                  </div>
+                  <div className="col-span-2 rounded-xl bg-white/80 dark:bg-neutral-900/80 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center">
+                    <Briefcase className="h-8 w-8 text-blue-700 dark:text-blue-400" aria-hidden />
+                    <span className="sr-only">HR dashboard</span>
+                  </div>
+                  <div className="rounded-xl bg-white/80 dark:bg-neutral-900/80 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center">
+                    <UserCog className="h-7 w-7 text-indigo-700 dark:text-indigo-400" aria-hidden />
+                    <span className="sr-only">Roles & org settings</span>
+                  </div>
+                  <div className="rounded-xl bg-white/80 dark:bg-neutral-900/80 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center">
+                    <DollarSign className="h-7 w-7 text-emerald-700 dark:text-emerald-400" aria-hidden />
+                    <span className="sr-only">Payroll</span>
+                  </div>
+                  <div className="col-span-2 rounded-xl bg-white/80 dark:bg-neutral-900/80 ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center">
+                    <FileText className="h-8 w-8 text-fuchsia-700 dark:text-fuchsia-400" aria-hidden />
+                    <span className="sr-only">Policies & documents</span>
+                  </div>
                 </div>
               </div>
             </div>

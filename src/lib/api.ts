@@ -533,3 +533,43 @@ export async function changePasswordApi(body: { current_password: string; new_pa
     body: JSON.stringify(body),
   })
 }
+
+// Dashboard analytics APIs
+export type SummaryMetrics = { employees: number; pending_leaves: number; documents_this_week: number; on_leave_today: number }
+export type AlertItem = { key: string; label: string; value: number; threshold: number; severity: 'info'|'warning'|'critical'; status: 'ok'|'alert'; hint?: string }
+export type TrendPoint = { period: string; value: number }
+export type TrendSeries = { key: string; label: string; points: TrendPoint[] }
+export type ScorecardRow = { group: string; employees: number; pending_leaves: number; active_assignments: number }
+export type DrilldownRow = { group: string; value: number }
+export type DrilldownResponse = { metric: string; group_by: string; rows: DrilldownRow[] }
+
+export async function dashboardSummary(): Promise<SummaryMetrics> {
+  return apiFetch<SummaryMetrics>('/api/v1/dashboard/summary', { method: 'GET' })
+}
+export async function dashboardAlerts(params?: { pending_leave_threshold?: number }): Promise<AlertItem[]> {
+  const q = new URLSearchParams()
+  if (params?.pending_leave_threshold != null) q.set('pending_leave_threshold', String(params.pending_leave_threshold))
+  const qs = q.toString()
+  return apiFetch<AlertItem[]>(`/api/v1/dashboard/alerts${qs ? `?${qs}` : ''}`, { method: 'GET' })
+}
+export async function dashboardTrends(months = 6): Promise<TrendSeries[]> {
+  const q = new URLSearchParams({ months: String(months) })
+  return apiFetch<TrendSeries[]>(`/api/v1/dashboard/trends?${q.toString()}`, { method: 'GET' })
+}
+export async function dashboardScorecards(): Promise<ScorecardRow[]> {
+  return apiFetch<ScorecardRow[]>(`/api/v1/dashboard/scorecards`, { method: 'GET' })
+}
+export async function dashboardDrilldown(metric: string, group_by = 'department'): Promise<DrilldownResponse> {
+  const q = new URLSearchParams({ metric, group_by })
+  return apiFetch<DrilldownResponse>(`/api/v1/dashboard/drilldown?${q.toString()}`, { method: 'GET' })
+}
+export async function dashboardExportCsv(): Promise<Blob> {
+  const token = getToken()
+  const res = await fetch(`${API_BASE}/api/v1/dashboard/export.csv`, {
+    method: 'GET',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  })
+  if (res.status === 401) await handleUnauthorized(res, token)
+  if (!res.ok) throw new Error('Export failed')
+  return await res.blob()
+}
