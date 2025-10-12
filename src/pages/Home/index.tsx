@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import Logo from '../../components/Logo'
-import { Users, Calendar, Megaphone, Briefcase, UserCog, DollarSign, FileText } from 'lucide-react'
+import { Users, Calendar, Megaphone, Briefcase, UserCog, DollarSign, FileText, Clock } from 'lucide-react'
 
 export default function Home() {
   return (
@@ -97,43 +97,34 @@ export default function Home() {
           <h2 className="text-2xl font-semibold mb-6 text-center">Powerful Features</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {/* Leave Management */}
-            <div className="text-center rounded-2xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-neutral-900/50 p-6 sm:p-8 backdrop-blur">
-              <div className="mx-auto h-12 w-12 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-500 to-fuchsia-500 text-white flex items-center justify-center shadow">
-                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor">
-                  <path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1m10 5H7v2h10zM4 10v9a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-9z" />
-                </svg>
-              </div>
-              <h3 className="mt-4 text-lg font-semibold">Leave Management</h3>
-              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                Request, approve, and track time off with clear visibility for teams.
-              </p>
-            </div>
+            <FeatureCard title="Leave Management" description="Request, approve, and track time off with clear visibility for teams.">
+              <Calendar className="h-6 w-6" />
+            </FeatureCard>
 
             {/* Employee Directory */}
-            <div className="text-center rounded-2xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-neutral-900/50 p-6 sm:p-8 backdrop-blur">
-              <div className="mx-auto h-12 w-12 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-500 to-fuchsia-500 text-white flex items-center justify-center shadow">
-                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor">
-                  <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4m-7 8a7 7 0 0 1 14 0v1H5z" />
-                </svg>
-              </div>
-              <h3 className="mt-4 text-lg font-semibold">Employee Directory</h3>
-              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                Searchable profiles with roles and contact details to connect quickly.
-              </p>
-            </div>
+            <FeatureCard title="Employee Directory" description="Searchable profiles with roles and contact details to connect quickly.">
+              <Users className="h-6 w-6" />
+            </FeatureCard>
+
+            {/* Time Tracking */}
+            <FeatureCard title="Time Tracking" description="Clock in/out and capture work against jobs with accurate hours.">
+              <Clock className="h-6 w-6" />
+            </FeatureCard>
+
+            {/* Job Assignments */}
+            <FeatureCard title="Job Assignments" description="Assign work, see progress, and review activity timelines.">
+              <Briefcase className="h-6 w-6" />
+            </FeatureCard>
+
+            {/* Announcements */}
+            <FeatureCard title="Announcements" description="Share company updates so everyone stays in the loop.">
+              <Megaphone className="h-6 w-6" />
+            </FeatureCard>
 
             {/* Document Storage */}
-            <div className="text-center rounded-2xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-neutral-900/50 p-6 sm:p-8 backdrop-blur">
-              <div className="mx-auto h-12 w-12 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-500 to-fuchsia-500 text-white flex items-center justify-center shadow">
-                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor">
-                  <path d="M3 6a3 3 0 0 1 3-3h4l2 2h6a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3zm3 3h12a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1" />
-                </svg>
-              </div>
-              <h3 className="mt-4 text-lg font-semibold">Document Storage</h3>
-              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                Keep policies and documents organized with secure, easy access.
-              </p>
-            </div>
+            <FeatureCard title="Document Storage" description="Keep policies and HR files organized with secure, easy access.">
+              <FileText className="h-6 w-6" />
+            </FeatureCard>
           </div>
         </section>
 
@@ -304,6 +295,18 @@ export default function Home() {
 }
 
 // Inline icons used in this page
+function FeatureCard({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+  return (
+    <div className="text-center rounded-2xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-neutral-900/50 p-6 sm:p-8 backdrop-blur">
+      <div className="mx-auto h-12 w-12 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-500 to-fuchsia-500 text-white flex items-center justify-center shadow">
+        {children}
+      </div>
+      <h3 className="mt-4 text-lg font-semibold">{title}</h3>
+      <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{description}</p>
+    </div>
+  )
+}
+
 function CheckIcon({ className = '' }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
