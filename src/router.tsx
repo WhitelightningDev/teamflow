@@ -8,6 +8,7 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import AcceptInvite from './pages/AcceptInvite'
 import Register from './pages/Register'
+import OAuthCallback from './pages/OAuthCallback'
 import Dashboard from './pages/Dashboard'
 import AttendancePage from './pages/Attendance'
 import AnnouncementsList from './pages/Announcements/AnnouncementsList'
@@ -36,6 +37,7 @@ export default function AppRouter() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/accept-invite" element={<AcceptInvite />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/oauth/callback" element={<OAuthCallback />} />
         <Route path="/book-demo" element={<BookDemoPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/employees" element={<RequireRole allow={["admin","manager","hr"]}><EmployeesPage /></RequireRole>} />

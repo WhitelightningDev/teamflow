@@ -2,7 +2,7 @@ import type { FormEvent } from 'react'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Logo from '../../components/Logo'
-import { login as apiLogin, saveAuth } from '../../lib/api'
+import { login as apiLogin, saveAuth, API_BASE } from '../../lib/api'
 
 export default function Login() {
   const [params] = useSearchParams()
@@ -58,11 +58,11 @@ export default function Login() {
 
               {/* OAuth */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button type="button" className="inline-flex items-center justify-center gap-2 rounded-lg border border-black/10 dark:border-white/15 bg-white text-slate-900 dark:bg-neutral-900/60 dark:text-slate-100 px-4 py-2.5 shadow-sm hover:bg-black/5 dark:hover:bg-white/10">
+                <button type="button" onClick={() => { window.location.assign(`${API_BASE}/api/v1/auth/oauth/google/start?next=/dashboard`) }} className="inline-flex items-center justify-center gap-2 rounded-lg border border-black/10 dark:border-white/15 bg-white text-slate-900 dark:bg-neutral-900/60 dark:text-slate-100 px-4 py-2.5 shadow-sm hover:bg-black/5 dark:hover:bg-white/10">
                   <GoogleIcon className="h-5 w-5" />
                   <span>Continue with Google</span>
                 </button>
-                <button type="button" className="inline-flex items-center justify-center gap-2 rounded-lg border border-black/10 dark:border-white/15 bg-white text-slate-900 dark:bg-neutral-900/60 dark:text-slate-100 px-4 py-2.5 shadow-sm hover:bg-black/5 dark:hover:bg-white/10">
+                <button type="button" onClick={() => { window.location.assign(`${API_BASE}/api/v1/auth/oauth/microsoft/start?next=/dashboard`) }} className="inline-flex items-center justify-center gap-2 rounded-lg border border-black/10 dark:border-white/15 bg-white text-slate-900 dark:bg-neutral-900/60 dark:text-slate-100 px-4 py-2.5 shadow-sm hover:bg-black/5 dark:hover:bg-white/10">
                   <MicrosoftIcon className="h-5 w-5" />
                   <span>Continue with Microsoft</span>
                 </button>
